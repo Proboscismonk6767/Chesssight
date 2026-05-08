@@ -1,0 +1,18 @@
+# Secrets and local config — never commit
+.env
+.env.*
+!.env.example
+
+# Wrangler local state and any wrangler.toml carrying real KV / account IDs.
+# Commit a wrangler.toml.example instead if you want a starter template.
+chessight-worker/wrangler.toml
+chessight-worker/.dev.vars
+chessight-worker/.wrangler/
+.wrangler/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

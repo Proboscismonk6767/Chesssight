@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "read",
+      "write",
+      "edit",
+      "glob",
+      "grep"
+    ]
+  }
+}

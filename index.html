@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="ChessSight.ai">
+  <meta name="description" content="ChessSight.ai — AI-powered chess board scanning for iOS. Convert physical positions to FEN/PGN and analyse your game.">
+  <meta name="theme-color" content="#0d0d0d">
+  <title>ChessSight.ai — See the Game Differently</title>
+
+  <link rel="manifest" href="manifest.json">
+
+  <!-- ── Open Graph ── -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ChessSight.ai">
+  <meta property="og:url" content="https://chesssight.ai/">
+  <meta property="og:title" content="ChessSight.ai — See the Game Differently">
+  <meta property="og:description" content="ChessSight.ai — AI-powered chess board scanning for iOS. Convert physical positions to FEN/PGN and analyse your game.">
+  <meta property="og:image" content="https://chesssight.ai/og-image.png">
+  <meta property="og:image:alt" content="ChessSight.ai — AI-powered chess board scanning">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_GB">
+
+  <!-- ── Twitter Card ── -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ChessSight.ai — See the Game Differently">
+  <meta name="twitter:description" content="ChessSight.ai — AI-powered chess board scanning for iOS. Convert physical positions to FEN/PGN and analyse your game.">
+  <meta name="twitter:image" content="https://chesssight.ai/og-image.png">
+  <meta name="twitter:image:alt" content="ChessSight.ai — AI-powered chess board scanning">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap');
+
+    /* ── Custom Properties ── */
+    :root {
+      --green-deep:   #1a2e1a;
+      --green-mid:    #243824;
+      --black-near:   #0d0d0d;
+      --cream:        #f5f0e8;
+      --cream-dark:   #e8e0d0;
+      --gold:         #c9a84c;
+      --gold-light:   #dfc06a;
+      --gold-dim:     rgba(201,168,76,0.25);
+      --text-dark:    #1a1a1a;
+      --text-muted:   #6b6459;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+      --transition:   0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--text-dark);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.2; }
+
+    /* ── Layout ── */
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+
+    .section { padding: 96px 0; }
+
+    /* ── Reveal animation ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: 0.12s; }
+    .reveal-d2 { transition-delay: 0.24s; }
+    .reveal-d3 { transition-delay: 0.36s; }
+
+    /* ── Shared type ── */
+    .eyebrow {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    .section-title em { font-style: italic; color: var(--gold); }
+
+    .gold-rule {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 0;
+    }
+
+    .chess-checker-divider {
+      height: 10px;
+      background-image: repeating-linear-gradient(
+        90deg,
+        rgba(201,168,76,0.22) 0px, rgba(201,168,76,0.22) 10px,
+        transparent 10px, transparent 20px
+      );
+    }
+
+    /* ══════════════════════════════════
+       NAV
+    ══════════════════════════════════ */
+    #nav {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 200;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.4s ease, border-color 0.4s ease;
+      border-bottom: 1px solid transparent;
+    }
+
+    #nav.scrolled {
+      background: rgba(13,13,13,0.93);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom-color: rgba(201,168,76,0.14);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--cream);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-logo .ai { color: var(--gold); font-style: italic; }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      min-height: 44px;
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-decoration: none;
+      border: 1px solid rgba(201,168,76,0.4);
+      transition: background var(--transition), border-color var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-btn:active, .nav-btn:hover {
+      background: rgba(201,168,76,0.1);
+      border-color: var(--gold);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn-analyse {
+      background: var(--gold);
+      color: var(--black-near);
+      border-color: var(--gold);
+    }
+
+    .nav-btn-analyse:active, .nav-btn-analyse:hover {
+      background: var(--gold-light);
+      border-color: var(--gold-light);
+      color: var(--black-near);
+    }
+
+    /* ══════════════════════════════════
+       HERO
+    ══════════════════════════════════ */
+    #hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: var(--black-near);
+      overflow: hidden;
+      padding: 100px 24px 80px;
+    }
+
+    /* Board grid overlay */
+    #hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      z-index: 0;
+    }
+
+    /* Vignette */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 65% at 50% 50%,
+        rgba(26,46,26,0.55) 0%,
+        rgba(13,13,13,0.96) 100%);
+      z-index: 1;
+    }
+
+    /* Floating pieces */
+    .bg-pieces {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-piece {
+      position: absolute;
+      bottom: -10%;
+      color: rgba(201,168,76,0.055);
+      animation: floatUp linear infinite;
+      user-select: none;
+      line-height: 1;
+    }
+
+    @keyframes floatUp {
+      0%   { transform: translateY(0)       rotate(0deg);  opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { transform: translateY(-115vh)  rotate(18deg); opacity: 0; }
+    }
+
+    .bg-piece:nth-child(1)  { left:  4%; font-size: 52px; animation-duration: 26s; animation-delay:   0s; }
+    .bg-piece:nth-child(2)  { left: 13%; font-size: 34px; animation-duration: 33s; animation-delay:  -9s; }
+    .bg-piece:nth-child(3)  { left: 23%; font-size: 60px; animation-duration: 24s; animation-delay:  -3s; }
+    .bg-piece:nth-child(4)  { left: 34%; font-size: 40px; animation-duration: 29s; animation-delay: -13s; }
+    .bg-piece:nth-child(5)  { left: 47%; font-size: 50px; animation-duration: 21s; animation-delay:  -1s; }
+    .bg-piece:nth-child(6)  { left: 58%; font-size: 36px; animation-duration: 37s; animation-delay: -17s; }
+    .bg-piece:nth-child(7)  { left: 69%; font-size: 56px; animation-duration: 28s; animation-delay:  -7s; }
+    .bg-piece:nth-child(8)  { left: 80%; font-size: 38px; animation-duration: 31s; animation-delay: -15s; }
+    .bg-piece:nth-child(9)  { left: 90%; font-size: 46px; animation-duration: 27s; animation-delay: -11s; }
+    .bg-piece:nth-child(10) { left: 52%; font-size: 30px; animation-duration: 35s; animation-delay: -21s; }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 740px;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 22px;
+      opacity: 0.9;
+    }
+
+    .hero-wordmark {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 11vw, 7rem);
+      font-weight: 700;
+      color: var(--cream);
+      letter-spacing: -0.025em;
+      line-height: 0.95;
+      margin-bottom: 10px;
+    }
+
+    .hero-wordmark .ai {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .hero-tagline {
+      font-family: var(--font-display);
+      font-size: clamp(1rem, 2.8vw, 1.4rem);
+      font-style: italic;
+      color: rgba(245,240,232,0.68);
+      max-width: 560px;
+      margin: 22px auto 44px;
+      line-height: 1.6;
+    }
+
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 17px 44px;
+      min-height: 56px;
+      background: transparent;
+      border: 1.5px solid var(--gold);
+      color: var(--gold);
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-hero:active, .btn-hero:hover {
+      background: var(--gold);
+      color: var(--black-near);
+    }
+
+    .scroll-cue {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .scroll-cue-line {
+      width: 1px;
+      height: 44px;
+      background: linear-gradient(to bottom, transparent, var(--gold));
+      margin: 0 auto;
+      animation: cuePulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes cuePulse {
+      0%, 100% { opacity: 0.25; }
+      50%       { opacity: 0.75; }
+    }
+
+    /* ══════════════════════════════════
+       ABOUT
+    ══════════════════════════════════ */
+    #about { background: var(--cream); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .about-grid { grid-template-columns: 1fr 1.4fr; }
+    }
+
+    .about-deco-wrap {
+      display: flex;
+      justify-content: center;
+    }
+
+    .mini-board {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      border: 1.5px solid var(--gold-dim);
+    }
+
+    .mini-board-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+
+    .mc { border: 0; }
+    .mc.d { background: rgba(26,46,26,0.30); }
+    .mc.l { background: rgba(245,240,232,0.55); }
+
+    .board-queen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4.5rem;
+      color: var(--gold);
+      opacity: 0.55;
+      line-height: 1;
+    }
+
+    .ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 80px; height: 80px;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      transform: translate(-50%,-50%) scale(0.5);
+      opacity: 0;
+      animation: ringPulse 3s ease-out infinite;
+    }
+    .ring:nth-child(2) { animation-delay: 1s; }
+    .ring:nth-child(3) { animation-delay: 2s; }
+
+    @keyframes ringPulse {
+      0%   { transform: translate(-50%,-50%) scale(0.4); opacity: 0.6; }
+      100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0;   }
+    }
+
+    .about-text .section-title { color: var(--text-dark); }
+
+    .about-text p {
+      font-size: 1rem;
+      line-height: 1.85;
+      color: var(--text-muted);
+    }
+
+    .about-text p + p { margin-top: 14px; }
+    .about-text p:first-of-type { color: var(--text-dark); font-size: 1.05rem; }
+
+    /* ══════════════════════════════════
+       FEATURES
+    ══════════════════════════════════ */
+    #features { background: var(--green-deep); }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .features-header .section-title { color: var(--cream); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 640px) { .features-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (min-width: 960px) { .features-grid { grid-template-columns: repeat(3,1fr); } }
+
+    .f-card {
+      padding: 44px 36px;
+      background: rgba(245,240,232,0.04);
+      border: 1px solid rgba(201,168,76,0.18);
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .f-card:active, .f-card:hover {
+      background: rgba(245,240,232,0.075);
+      border-color: rgba(201,168,76,0.45);
+    }
+
+    .f-icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 22px;
+      line-height: 1;
+    }
+
+    .f-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin-bottom: 14px;
+    }
+
+    .f-desc {
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: rgba(245,240,232,0.6);
+    }
+
+    /* ══════════════════════════════════
+       WHO IT'S FOR
+    ══════════════════════════════════ */
+    #audience { background: var(--cream); }
+
+    .audience-header {
+      text-align: center;
+      max-width: 580px;
+      margin: 0 auto 60px;
+    }
+
+    .audience-header .section-title { color: var(--text-dark); }
+
+    .audience-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      outline: 1px solid var(--gold-dim);
+    }
+
+    @media (min-width: 768px) { .audience-grid { grid-template-columns: repeat(3,1fr); } }
+
+    .a-tile {
+      padding: 52px 40px;
+      background: var(--cream);
+      border: 1px solid var(--gold-dim);
+      transition: background var(--transition);
+    }
+
+    .a-tile:active, .a-tile:hover { background: var(--cream-dark); }
+
+    .a-icon {
+      font-size: 2.1rem;
+      display: block;
+      margin-bottom: 18px;
+      line-height: 1;
+    }
+
+    .a-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--green-deep);
+      margin-bottom: 10px;
+    }
+
+    .a-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    /* ══════════════════════════════════
+       HOW IT WORKS
+    ══════════════════════════════════ */
+    #how { background: var(--black-near); }
+
+    .how-header { text-align: center; margin-bottom: 72px; }
+    .how-header .section-title { color: var(--cream); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+      max-width: 860px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    @media (min-width: 768px) {
+      .steps {
+        grid-template-columns: repeat(3,1fr);
+        gap: 0;
+      }
+
+      .steps::before {
+        content: '';
+        position: absolute;
+        top: 31px;
+        left: calc(16.67% + 28px);
+        right: calc(16.67% + 28px);
+        height: 1px;
+        background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-dim));
+        z-index: 0;
+      }
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-num {
+      width: 62px;
+      height: 62px;
+      border: 1.5px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--gold);
+      background: var(--black-near);
+      margin-bottom: 26px;
+      flex-shrink: 0;
+    }
+
+    .step-lbl {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin-bottom: 12px;
+    }
+
+    .step-desc {
+      font-size: 0.875rem;
+      color: rgba(245,240,232,0.55);
+      line-height: 1.8;
+    }
+
+    /* ══════════════════════════════════
+       COMPARISON
+    ══════════════════════════════════ */
+    #compare { background: var(--cream); }
+
+    .compare-header {
+      text-align: center;
+      max-width: 580px;
+      margin: 0 auto 56px;
+    }
+    .compare-header .section-title { color: var(--text-dark); }
+
+    .compare-table-wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      border: 1px solid var(--gold-dim);
+      background: var(--cream);
+      overflow: hidden;
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-body);
+    }
+
+    .compare-table th,
+    .compare-table td {
+      padding: 18px 18px;
+      text-align: center;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--gold-dim);
+    }
+
+    .compare-table thead th {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--green-deep);
+      background: rgba(201,168,76,0.08);
+      letter-spacing: 0.01em;
+    }
+
+    .compare-table thead th.col-us {
+      color: var(--gold);
+      background: rgba(26,46,26,0.06);
+      font-style: italic;
+    }
+
+    .compare-table tbody tr:last-child td { border-bottom: none; }
+
+    .compare-table .row-label {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-dark);
+      letter-spacing: 0.01em;
+    }
+
+    .compare-cell-us { background: rgba(201,168,76,0.06); }
+
+    .check, .cross {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .check { color: var(--gold); background: rgba(201,168,76,0.12); border: 1px solid var(--gold-dim); }
+    .cross { color: var(--text-muted); background: var(--cream-dark); border: 1px solid rgba(107,100,89,0.25); }
+
+    .compare-cell-us .check {
+      color: var(--cream);
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+
+    .compare-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    @media (max-width: 640px) {
+      .compare-table th,
+      .compare-table td { padding: 12px 8px; font-size: 0.78rem; }
+      .compare-table .row-label { font-size: 0.82rem; }
+      .check, .cross { width: 22px; height: 22px; font-size: 0.78rem; }
+    }
+
+    /* ══════════════════════════════════
+       FAQ
+    ══════════════════════════════════ */
+    #faq { background: var(--black-near); }
+
+    .faq-header {
+      text-align: center;
+      max-width: 620px;
+      margin: 0 auto 60px;
+    }
+    .faq-header .section-title { color: var(--cream); }
+
+    .faq-list {
+      max-width: 760px;
+      margin: 0 auto;
+      border-top: 1px solid rgba(201,168,76,0.18);
+    }
+
+    .faq-item {
+      border-bottom: 1px solid rgba(201,168,76,0.18);
+    }
+
+    .faq-q {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px 8px;
+      background: transparent;
+      border: none;
+      color: var(--cream);
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      letter-spacing: 0.005em;
+      line-height: 1.4;
+      transition: color var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .faq-q:hover { color: var(--gold-light); }
+
+    .faq-icon {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--gold-dim);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--gold);
+      transition: transform var(--transition), background var(--transition), border-color var(--transition);
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      background: rgba(201,168,76,0.12);
+      border-color: var(--gold);
+    }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s var(--transition), opacity 0.4s var(--transition);
+      opacity: 0;
+    }
+    .faq-item.open .faq-a {
+      max-height: 320px;
+      opacity: 1;
+    }
+    .faq-a-inner {
+      padding: 0 8px 26px;
+      font-size: 0.92rem;
+      line-height: 1.8;
+      color: rgba(245,240,232,0.66);
+    }
+
+    /* ══════════════════════════════════
+       FOOTER
+    ══════════════════════════════════ */
+    #footer {
+      background: var(--green-deep);
+      color: var(--cream);
+      padding: 96px 0 52px;
+    }
+
+    .footer-inner {
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .footer-wordmark {
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .footer-wordmark .ai {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .footer-blurb {
+      font-size: 0.92rem;
+      color: rgba(245,240,232,0.55);
+      margin-bottom: 48px;
+      line-height: 1.75;
+    }
+
+    .notify-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 64px;
+    }
+
+    @media (min-width: 480px) { .notify-row { flex-direction: row; } }
+
+    .notify-input {
+      flex: 1;
+      padding: 14px 18px;
+      min-height: 52px;
+      background: rgba(245,240,232,0.07);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--cream);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color var(--transition);
+    }
+
+    .notify-input::placeholder { color: rgba(245,240,232,0.3); }
+    .notify-input:focus { border-color: var(--gold); }
+
+    .btn-notify {
+      padding: 14px 28px;
+      min-height: 52px;
+      min-width: 116px;
+      background: var(--gold);
+      border: none;
+      color: var(--black-near);
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-notify:active, .btn-notify:hover { background: var(--gold-light); }
+
+    .footer-hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin-bottom: 36px;
+    }
+
+    .footer-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-pieces {
+      font-size: 1.4rem;
+      letter-spacing: 0.55em;
+      opacity: 0.28;
+    }
+
+    .footer-copy {
+      font-size: 0.73rem;
+      color: rgba(245,240,232,0.3);
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav id="nav" role="navigation" aria-label="Main">
+    <a href="#hero" class="nav-logo" aria-label="ChessSight.ai home">ChessSight<span class="ai">.ai</span></a>
+    <div class="nav-actions">
+      <a href="#footer" class="nav-btn">Newsletter</a>
+      <a href="actionpage.html" class="nav-btn nav-btn-analyse">Analyse</a>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════
+       HERO
+  ══════════════════════════════════ -->
+  <section id="hero" aria-label="Hero">
+
+    <div class="bg-pieces" aria-hidden="true">
+      <span class="bg-piece">&#9820;</span>
+      <span class="bg-piece">&#9822;</span>
+      <span class="bg-piece">&#9819;</span>
+      <span class="bg-piece">&#9821;</span>
+      <span class="bg-piece">&#9818;</span>
+      <span class="bg-piece">&#9823;</span>
+      <span class="bg-piece">&#9820;</span>
+      <span class="bg-piece">&#9822;</span>
+      <span class="bg-piece">&#9819;</span>
+      <span class="bg-piece">&#9821;</span>
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">Introducing</p>
+      <h1 class="hero-wordmark">ChessSight<span class="ai">.ai</span></h1>
+      <p class="hero-tagline">Where centuries of tradition meet the clarity of artificial intelligence, every position seen, every mistake understood.</p>
+      <a href="#features" class="btn-hero">
+        Explore Features
+        <span aria-hidden="true">&darr;</span>
+      </a>
+    </div>
+
+    <div class="scroll-cue" aria-hidden="true">
+      <div class="scroll-cue-line"></div>
+    </div>
+
+  </section>
+
+  <hr class="gold-rule">
+
+  <!-- ══════════════════════════════════
+       ABOUT
+  ══════════════════════════════════ -->
+  <section id="about" class="section" aria-label="About ChessSight.ai">
+    <div class="container">
+      <div class="about-grid">
+
+        <div class="about-deco-wrap reveal">
+          <div class="mini-board" role="img" aria-label="Decorative chess board with AI scan animation">
+            <div class="mini-board-grid" aria-hidden="true">
+              <div class="mc d"></div><div class="mc l"></div><div class="mc d"></div><div class="mc l"></div><div class="mc d"></div>
+              <div class="mc l"></div><div class="mc d"></div><div class="mc l"></div><div class="mc d"></div><div class="mc l"></div>
+              <div class="mc d"></div><div class="mc l"></div><div class="mc d"></div><div class="mc l"></div><div class="mc d"></div>
+              <div class="mc l"></div><div class="mc d"></div><div class="mc l"></div><div class="mc d"></div><div class="mc l"></div>
+              <div class="mc d"></div><div class="mc l"></div><div class="mc d"></div><div class="mc l"></div><div class="mc d"></div>
+            </div>
+            <div class="board-queen" aria-hidden="true">&#9819;</div>
+            <div class="ring" aria-hidden="true"></div>
+            <div class="ring" aria-hidden="true"></div>
+            <div class="ring" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="about-text reveal reveal-d1">
+          <span class="eyebrow">What is ChessSight.ai</span>
+          <h2 class="section-title">The <em>intelligent</em> bridge between board and screen</h2>
+          <p>ChessSight.ai is a concept iOS application that uses AI to read physical chess boards in real time, translating the arrangement of pieces into precise digital notation without a single keystroke.</p>
+          <p>Born from reverence for over-the-board play and a conviction that technology should serve the game, not replace it. Whether you coach students, compete in clubs, or simply love the art of chess, ChessSight.ai transforms how you capture and study positions.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="chess-checker-divider" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════
+       FEATURES
+  ══════════════════════════════════ -->
+  <section id="features" class="section" aria-label="Features">
+    <div class="container">
+
+      <div class="features-header reveal">
+        <span class="eyebrow">Capabilities</span>
+        <h2 class="section-title">Three tools, one <em>seamless</em> experience</h2>
+      </div>
+
+      <div class="features-grid">
+
+        <div class="f-card reveal">
+          <span class="f-icon" aria-hidden="true">&#9823;</span>
+          <h3 class="f-title">Board Recognition</h3>
+          <p class="f-desc">Point your camera at any physical chess board and ChessSight.ai instantly maps every piece to a precise digital position, regardless of set style, lighting, or angle.</p>
+        </div>
+
+        <div class="f-card reveal reveal-d1">
+          <span class="f-icon" aria-hidden="true">&#9822;</span>
+          <h3 class="f-title">FEN &amp; PGN Export</h3>
+          <p class="f-desc">Convert any scanned position to industry-standard FEN or PGN notation with one tap, ready to paste into Lichess, Chess.com, or any analysis engine of your choosing.</p>
+        </div>
+
+        <div class="f-card reveal reveal-d2">
+          <span class="f-icon" aria-hidden="true">&#9819;</span>
+          <h3 class="f-title">Blunder Analysis</h3>
+          <p class="f-desc">After scanning a game, ChessSight.ai reviews every move, flags mistakes and blunders, and explains precisely what the engine recommends instead, move by move.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="chess-checker-divider" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════
+       COMPARISON
+  ══════════════════════════════════ -->
+  <section id="compare" class="section" aria-label="How ChessSight.ai compares">
+    <div class="container">
+
+      <div class="compare-header reveal">
+        <span class="eyebrow">Why ChessSight</span>
+        <h2 class="section-title">A clearer path from <em>board to insight</em></h2>
+      </div>
+
+      <div class="compare-table-wrap reveal reveal-d1">
+        <table class="compare-table" aria-label="Comparison of methods for digitising chess positions">
+          <thead>
+            <tr>
+              <th scope="col" class="row-label">&nbsp;</th>
+              <th scope="col">Manual Entry</th>
+              <th scope="col">Other Apps</th>
+              <th scope="col" class="col-us">ChessSight.ai</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row" class="row-label">Speed</th>
+              <td><span class="compare-note">Minutes per game</span></td>
+              <td><span class="compare-note">Slow &amp; manual</span></td>
+              <td class="compare-cell-us"><span class="compare-note" style="color:var(--gold);font-style:normal;font-weight:500;">Seconds</span></td>
+            </tr>
+            <tr>
+              <th scope="row" class="row-label">Accuracy</th>
+              <td><span class="cross" aria-label="No">✗</span></td>
+              <td><span class="cross" aria-label="Limited">✗</span></td>
+              <td class="compare-cell-us"><span class="check" aria-label="Yes">✓</span></td>
+            </tr>
+            <tr>
+              <th scope="row" class="row-label">Export formats</th>
+              <td><span class="compare-note">FEN only</span></td>
+              <td><span class="compare-note">FEN only</span></td>
+              <td class="compare-cell-us"><span class="compare-note" style="color:var(--gold);font-style:normal;font-weight:500;">FEN &amp; PGN</span></td>
+            </tr>
+            <tr>
+              <th scope="row" class="row-label">Works offline</th>
+              <td><span class="check" aria-label="Yes">✓</span></td>
+              <td><span class="cross" aria-label="No">✗</span></td>
+              <td class="compare-cell-us"><span class="check" aria-label="Yes">✓</span></td>
+            </tr>
+            <tr>
+              <th scope="row" class="row-label">Blunder analysis</th>
+              <td><span class="cross" aria-label="No">✗</span></td>
+              <td><span class="cross" aria-label="No">✗</span></td>
+              <td class="compare-cell-us"><span class="check" aria-label="Yes">✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="chess-checker-divider" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════
+       WHO IT'S FOR
+  ══════════════════════════════════ -->
+  <section id="audience" class="section" aria-label="Who ChessSight.ai is for">
+    <div class="container">
+
+      <div class="audience-header reveal">
+        <span class="eyebrow">Who it serves</span>
+        <h2 class="section-title">Built for every player, <em>at every level</em></h2>
+      </div>
+
+      <div class="audience-grid">
+
+        <div class="a-tile reveal">
+          <span class="a-icon" aria-hidden="true">&#9818;</span>
+          <h3 class="a-title">Chess Coaches &amp; Teachers</h3>
+          <p class="a-desc">Scan student games from the board in seconds. No manual entry, no transcription errors, just clean digital records ready for deep review and annotation.</p>
+        </div>
+
+        <div class="a-tile reveal reveal-d1">
+          <span class="a-icon" aria-hidden="true">&#9820;</span>
+          <h3 class="a-title">Club &amp; Tournament Players</h3>
+          <p class="a-desc">Record over-the-board games effortlessly. Build your personal game library without touching a scoresheet, from the opening to the final handshake.</p>
+        </div>
+
+        <div class="a-tile reveal reveal-d2">
+          <span class="a-icon" aria-hidden="true">&#9817;</span>
+          <h3 class="a-title">Casual &amp; Beginner Players</h3>
+          <p class="a-desc">Snap any position or puzzle and instantly receive guidance on what went wrong and how to improve. Serious learning has never felt this immediate.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <hr class="gold-rule">
+
+  <!-- ══════════════════════════════════
+       HOW IT WORKS
+  ══════════════════════════════════ -->
+  <section id="how" class="section" aria-label="How ChessSight.ai works">
+    <div class="container">
+
+      <div class="how-header reveal">
+        <span class="eyebrow">The process</span>
+        <h2 class="section-title">Three steps to <em>mastery</em></h2>
+      </div>
+
+      <div class="steps">
+
+        <div class="step reveal">
+          <div class="step-num" aria-hidden="true">I</div>
+          <p class="step-lbl">Step One</p>
+          <h3 class="step-title">Scan</h3>
+          <p class="step-desc">Open the app and point your camera at the board. ChessSight.ai frames the position and prepares to capture.</p>
+        </div>
+
+        <div class="step reveal reveal-d1">
+          <div class="step-num" aria-hidden="true">II</div>
+          <p class="step-lbl">Step Two</p>
+          <h3 class="step-title">Analyse</h3>
+          <p class="step-desc">The AI processes the image in seconds, identifying each piece and reconstructing the full position with precision.</p>
+        </div>
+
+        <div class="step reveal reveal-d2">
+          <div class="step-num" aria-hidden="true">III</div>
+          <p class="step-lbl">Step Three</p>
+          <h3 class="step-title">Improve</h3>
+          <p class="step-desc">Review the generated notation, export to your platform of choice, or let the engine walk you through every mistake.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       FAQ
+  ══════════════════════════════════ -->
+  <section id="faq" class="section" aria-label="Frequently asked questions">
+    <div class="container">
+
+      <div class="faq-header reveal">
+        <span class="eyebrow">Common Questions</span>
+        <h2 class="section-title">Everything you <em>need to know</em></h2>
+      </div>
+
+      <div class="faq-list reveal reveal-d1">
+
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span>How accurate is the board recognition?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            <div class="faq-a-inner">
+              ChessSight.ai reads most over-the-board photos with a high degree of fidelity, even across varied lighting, piece sets, and angles. When a square is partly occluded or genuinely ambiguous, it is flagged for your review rather than guessed at — a moment of verification beats a confident mistake.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span>Which chess piece sets are supported?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            <div class="faq-a-inner">
+              The system has been trained on a broad spread of Staunton-style sets — tournament plastic, club wood, and most standard themed sets. Heavily figurine or stylised pieces (animal sets, abstract art designs) are still readable, but accuracy can dip; we recommend confirming the position before exporting.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span>Does ChessSight.ai work mid-game?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            <div class="faq-a-inner">
+              Yes. Photograph a position at any stage and the app will reconstruct it — opening preparation, middlegame study, or endgame analysis. From a single still, side-to-move and castling rights cannot be inferred and default to sensible values; you can adjust them in one tap on the board editor.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span>Are my photos stored or shared?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            <div class="faq-a-inner">
+              Images are sent to the analysis service for the sole purpose of producing your position and are not retained on our servers. Recent analyses are kept locally on your device, in your browser, and never leave it. We do not sell, share, or monetise your uploads.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span>Which platforms can I export to?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            <div class="faq-a-inner">
+              Every analysis exports as standard FEN and PGN, so the position drops cleanly into Lichess, Chess.com, ChessBase, SCID, and any modern engine. One-tap shortcuts open the position directly in Lichess or Chess.com analysis when you'd rather skip the copy-paste.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       FOOTER
+  ══════════════════════════════════ -->
+  <footer id="footer" aria-label="Newsletter">
+    <div class="container">
+      <div class="footer-inner">
+
+        <div class="reveal">
+          <p class="footer-wordmark">ChessSight<span class="ai">.ai</span></p>
+          <p class="footer-blurb">ChessSight.ai is currently in development.<br>Subscribe to our newsletter and be the first to know when we launch.</p>
+        </div>
+
+        <div id="notify-wrap" class="reveal reveal-d1">
+          <form id="notify-form" class="notify-row">
+            <input
+              class="notify-input"
+              type="email"
+              name="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="your@email.com"
+              aria-label="Email address for launch notification"
+              required
+            >
+            <button class="btn-notify" type="submit" id="notifyBtn">Subscribe</button>
+          </form>
+          <p id="notify-error" style="display:none;margin-top:10px;font-size:0.82rem;color:var(--gold);letter-spacing:0.04em;">Something went wrong — please try again.</p>
+        </div>
+        <div id="notify-success" style="display:none;margin-bottom:64px;font-family:var(--font-display);font-size:1.1rem;font-style:italic;color:var(--cream);opacity:0.82;">You're on the list. We'll be in touch.</div>
+
+        <hr class="footer-hr">
+
+        <div class="footer-bottom reveal reveal-d2">
+          <p class="footer-pieces" aria-hidden="true">&#9820; &#9822; &#9819; &#9821; &#9818;</p>
+          <p class="footer-copy">&copy; 2026 ChessSight.ai. All rights reserved.</p>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ── Scroll-triggered reveals ──────────────────────────────
+    var revealEls = document.querySelectorAll('.reveal');
+    var revealObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          revealObs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -36px 0px' });
+
+    revealEls.forEach(function(el) { revealObs.observe(el); });
+
+    // ── Buttondown silent signup ──────────────────────────────
+    document.getElementById('notify-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var form    = this;
+      var btn     = document.getElementById('notifyBtn');
+      var errEl   = document.getElementById('notify-error');
+      var email   = form.querySelector('input[name="email"]').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      errEl.style.display = 'none';
+
+      fetch('https://buttondown.com/api/emails/embed-subscribe/ChessSight.ai', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'email=' + encodeURIComponent(email) + '&embed=1'
+      })
+      .then(function() {
+        document.getElementById('notify-wrap').style.display = 'none';
+        document.getElementById('notify-success').style.display = 'block';
+      })
+      .catch(function() {
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Subscribe';
+      });
+    });
+
+    // ── Nav glass effect on scroll ────────────────────────────
+    var nav = document.getElementById('nav');
+    window.addEventListener('scroll', function() {
+      nav.classList.toggle('scrolled', window.scrollY > 56);
+    }, { passive: true });
+
+    // ── FAQ accordion ────────────────────────────────────────
+    document.querySelectorAll('.faq-q').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var item = btn.closest('.faq-item');
+        if (!item) return;
+        var willOpen = !item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(function(other) {
+          if (other !== item) {
+            other.classList.remove('open');
+            var b = other.querySelector('.faq-q');
+            if (b) b.setAttribute('aria-expanded', 'false');
+          }
+        });
+        item.classList.toggle('open', willOpen);
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+    });
+  </script>
+
+</body>
+</html>

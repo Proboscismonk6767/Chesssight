@@ -1,0 +1,27 @@
+{
+  "name": "ChessSight.ai — See the Game Differently",
+  "short_name": "ChessSight",
+  "description": "AI-powered chess board scanning. Convert physical positions to FEN/PGN and analyse your game.",
+  "start_url": "/actionpage.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0d0d0d",
+  "background_color": "#1a2e1a",
+  "lang": "en",
+  "categories": ["games", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

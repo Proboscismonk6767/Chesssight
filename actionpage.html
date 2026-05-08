@@ -1,0 +1,3218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d0d0d">
+<title>ChessSight — Analyse Position</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── Tokens ───────────────────────────────────────────────── */
+:root {
+  --green-deep:  #1a2e1a;
+  --green-mid:   #243824;
+  --black-near:  #0d0d0d;
+  --cream:       #f5f0e8;
+  --cream-dark:  #e8e0d0;
+  --gold:        #c9a84c;
+  --gold-light:  #dfc06a;
+  --gold-dim:    rgba(201,168,76,0.25);
+  --gold-faint:  rgba(201,168,76,0.08);
+  --font-display:'Playfair Display', Georgia, serif;
+  --font-body:   'Inter', system-ui, -apple-system, sans-serif;
+  --ease:        cubic-bezier(0.4,0,0.2,1);
+  --transition:  0.35s var(--ease);
+}
+
+/* ─── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--black-near);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Global grid overlay ──────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+    linear-gradient(90deg,rgba(201,168,76,0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Nav ──────────────────────────────────────────────────── */
+#nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+  height: 64px;
+  transition: background var(--transition), border-color var(--transition), backdrop-filter var(--transition);
+  border-bottom: 1px solid transparent;
+}
+#nav.scrolled {
+  background: rgba(13,13,13,0.93);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom-color: rgba(201,168,76,0.15);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cream);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.nav-logo .ai {
+  color: var(--gold);
+  font-style: italic;
+  font-weight: 400;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-btn:hover {
+  background: var(--gold-faint);
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  background: rgba(201,168,76,0.08);
+  line-height: 1;
+}
+
+/* ─── Background floating pieces ──────────────────────────── */
+.bg-pieces {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.bg-piece {
+  position: absolute;
+  bottom: -10%;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  color: rgba(201,168,76,0.055);
+  animation: floatUp linear infinite;
+  user-select: none;
+}
+@keyframes floatUp {
+  0%   { transform: translateY(0)   rotate(0deg);   opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { transform: translateY(-110vh) rotate(25deg); opacity: 0; }
+}
+.bg-piece:nth-child(1) { left:5%;  animation-duration:31s; animation-delay:-7s;  font-size:3rem; }
+.bg-piece:nth-child(2) { left:18%; animation-duration:26s; animation-delay:-14s; font-size:4.5rem; }
+.bg-piece:nth-child(3) { left:34%; animation-duration:37s; animation-delay:-3s;  font-size:2.5rem; }
+.bg-piece:nth-child(4) { left:52%; animation-duration:29s; animation-delay:-20s; font-size:5rem; }
+.bg-piece:nth-child(5) { left:68%; animation-duration:33s; animation-delay:-10s; font-size:3.5rem; }
+.bg-piece:nth-child(6) { left:82%; animation-duration:24s; animation-delay:-18s; font-size:4rem; }
+.bg-piece:nth-child(7) { left:91%; animation-duration:28s; animation-delay:-5s;  font-size:2.8rem; }
+
+/* ─── Page wrapper ─────────────────────────────────────────── */
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100px clamp(1rem, 4vw, 2rem) 80px;
+}
+
+/* Vignette focus */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 70% at 50% 45%,
+    rgba(26,46,26,0.3) 0%,
+    rgba(13,13,13,0.85) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ─── Page heading ─────────────────────────────────────────── */
+.page-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+  text-align: center;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 700;
+  text-align: center;
+  color: var(--cream);
+  margin-bottom: 2.5rem;
+  line-height: 1.15;
+}
+.page-title em {
+  font-style: italic;
+  color: var(--gold);
+  font-weight: 400;
+}
+
+/* ─── Main card ────────────────────────────────────────────── */
+.main-card {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── Mode selector ────────────────────────────────────────── */
+.mode-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+.mode-pill {
+  display: inline-flex;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(13,13,13,0.6);
+  backdrop-filter: blur(8px);
+}
+.mode-btn {
+  padding: 0.55rem 1.6rem;
+  background: transparent;
+  border: none;
+  color: rgba(245,240,232,0.45);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.mode-btn + .mode-btn {
+  border-left: 1px solid var(--gold-dim);
+}
+.mode-btn.active {
+  background: var(--green-deep);
+  color: var(--gold-light);
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+.mode-btn:not(.active):hover {
+  color: rgba(245,240,232,0.75);
+  background: rgba(201,168,76,0.05);
+}
+
+/* ─── Upload zone ──────────────────────────────────────────── */
+.upload-zone {
+  border: 1.5px dashed rgba(201,168,76,0.3);
+  border-radius: 16px;
+  background: rgba(26,46,26,0.12);
+  padding: 3.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--gold);
+  background: rgba(26,46,26,0.22);
+  box-shadow: 0 0 40px rgba(201,168,76,0.07);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.upload-zone.has-files input[type="file"] { pointer-events: none; }
+.upload-glyph {
+  font-size: 3rem;
+  color: rgba(201,168,76,0.5);
+  line-height: 1;
+  transition: color var(--transition), transform var(--transition);
+  user-select: none;
+}
+.upload-zone:hover .upload-glyph {
+  color: var(--gold);
+  transform: scale(1.08);
+}
+.upload-label {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--cream);
+  text-align: center;
+}
+.upload-sub {
+  font-size: 0.8rem;
+  color: rgba(245,240,232,0.45);
+  text-align: center;
+  line-height: 1.5;
+}
+.upload-formats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+.format-tag {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(201,168,76,0.6);
+}
+
+/* ─── Thumbnail preview grid ───────────────────────────────── */
+.preview-grid {
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+.preview-grid.visible { display: flex; }
+.preview-thumb {
+  width: 110px;
+  height: 110px;
+  border-radius: 8px;
+  border: 1px solid var(--gold-dim);
+  object-fit: cover;
+  background: var(--green-deep);
+}
+.preview-video {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  border: 1px solid var(--gold-dim);
+  background: var(--green-deep);
+}
+.clear-btn {
+  background: none;
+  border: none;
+  color: rgba(245,240,232,0.4);
+  font-size: 0.75rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition);
+  margin-top: 0.25rem;
+}
+.clear-btn:hover { color: var(--cream); }
+
+/* ─── Analyse button ───────────────────────────────────────── */
+.analyse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 58px;
+  margin-top: 1.25rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(100deg, var(--green-deep) 0%, #2a4a1a 40%, #8a6a1a 80%, var(--gold) 100%);
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-style: italic;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background-position 0.5s var(--ease), box-shadow var(--transition), opacity var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.analyse-btn:hover:not(:disabled) {
+  background-position: 60% 0%;
+  box-shadow: 0 4px 30px rgba(201,168,76,0.25);
+}
+.analyse-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.analyse-btn .btn-text { transition: opacity 0.2s; }
+.analyse-btn .btn-spinner {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Loading state */
+.analyse-btn.loading .btn-text   { display: none; }
+.analyse-btn.loading .btn-spinner { display: flex; }
+.analyse-btn.loading { pointer-events: none; }
+
+/* Spinner ring */
+.spin-ring {
+  width: 28px;
+  height: 28px;
+  position: relative;
+  flex-shrink: 0;
+}
+.spin-ring svg {
+  width: 100%;
+  height: 100%;
+  animation: spinRing 1.4s linear infinite;
+}
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+.spin-piece {
+  font-size: 1rem;
+  animation: spinPiece 3s linear infinite;
+  user-select: none;
+}
+@keyframes spinPiece {
+  to { transform: rotate(360deg); }
+}
+.spin-label {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: rgba(245,240,232,0.8);
+}
+
+/* Pulsing gold ring overlay (same motif as About section) */
+.analyse-btn.loading::before,
+.analyse-btn.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 1.5px solid var(--gold-dim);
+  animation: btnRingPulse 1.8s ease-out infinite;
+  pointer-events: none;
+}
+.analyse-btn.loading::after { animation-delay: 0.9s; }
+@keyframes btnRingPulse {
+  0%   { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.06); }
+}
+
+/* ─── Checker divider ──────────────────────────────────────── */
+.chess-checker-divider {
+  width: 100%;
+  height: 10px;
+  margin: 2.5rem 0;
+  background-image:
+    linear-gradient(45deg, rgba(201,168,76,0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(201,168,76,0.12) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(201,168,76,0.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(201,168,76,0.12) 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+  opacity: 0.7;
+}
+
+/* ─── Results panel ────────────────────────────────────────── */
+.results-panel {
+  display: none;
+  flex-direction: column;
+  gap: 1.5rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s var(--ease), transform 0.55s var(--ease);
+}
+.results-panel.visible {
+  display: flex;
+}
+.results-panel.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.results-heading {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+}
+
+/* Download cards row */
+.download-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 480px) {
+  .download-row { grid-template-columns: 1fr; }
+}
+
+.dl-card {
+  background: linear-gradient(145deg, var(--green-deep), rgba(13,13,13,0.8));
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 14px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  cursor: pointer;
+}
+.dl-card:hover {
+  border-color: rgba(201,168,76,0.5);
+  box-shadow: 0 4px 30px rgba(201,168,76,0.1);
+}
+
+/* Corner bracket motif */
+.dl-card::before,
+.dl-card::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--gold);
+  border-style: solid;
+  opacity: 0.55;
+}
+.dl-card::before { top: 10px; left: 10px; border-width: 1.5px 0 0 1.5px; }
+.dl-card::after  { bottom: 10px; right: 10px; border-width: 0 1.5px 1.5px 0; }
+
+.dl-format {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--gold-light);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+.dl-desc {
+  font-size: 0.78rem;
+  color: rgba(245,240,232,0.5);
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+}
+.dl-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: gap var(--transition), color var(--transition);
+}
+.dl-card:hover .dl-cta { gap: 0.65rem; color: var(--gold-light); }
+.dl-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 50%;
+  font-size: 0.9rem;
+  transition: background var(--transition), border-color var(--transition);
+}
+.dl-card:hover .dl-arrow {
+  background: rgba(201,168,76,0.12);
+  border-color: var(--gold);
+}
+
+/* ─── Feedback block ───────────────────────────────────────── */
+.feedback-block {
+  background: rgba(26,46,26,0.18);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 14px;
+  padding: 1.75rem;
+}
+.feedback-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+.feedback-text {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: rgba(245,240,232,0.85);
+}
+.feedback-text .term {
+  color: var(--gold-light);
+  font-weight: 500;
+}
+
+/* ─── Reveal animations ────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+.reveal.in-view { opacity: 1; transform: none; }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.22s; }
+.reveal-d3 { transition-delay: 0.34s; }
+
+/* ─── Footer ───────────────────────────────────────────────── */
+.page-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.72rem;
+  color: rgba(245,240,232,0.3);
+  letter-spacing: 0.06em;
+}
+.page-footer a { color: var(--gold-dim); text-decoration: none; }
+.page-footer a:hover { color: var(--gold); }
+
+/* ─── Confidence bar ───────────────────────────────────────── */
+.confidence-bar {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: rgba(201,168,76,0.08);
+  border-left: 3px solid var(--gold);
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.82rem;
+  color: rgba(245,240,232,0.78);
+  letter-spacing: 0.02em;
+}
+.confidence-bar .warn-icon { color: var(--gold); font-size: 1rem; }
+
+/* ─── Feedback meta ────────────────────────────────────────── */
+.feedback-meta {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.complexity-pill {
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.complexity-pill.quiet    { background: rgba(80,140,80,0.15);  color: #8fbc8f; border: 1px solid rgba(80,140,80,0.4); }
+.complexity-pill.complex  { background: rgba(201,168,76,0.12); color: var(--gold); border: 1px solid var(--gold-dim); }
+.complexity-pill.critical { background: rgba(180,70,70,0.15);  color: #d68585; border: 1px solid rgba(180,70,70,0.4); }
+.evaluation-line {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(245,240,232,0.65);
+}
+.evaluation-line .eval-side { font-weight: 600; }
+.evaluation-line .eval-side.white { color: var(--cream); }
+.evaluation-line .eval-side.black { color: #b89090; }
+.evaluation-line .eval-side.equal { color: var(--gold); font-style: italic; }
+
+/* ─── Error card ───────────────────────────────────────────── */
+.error-card {
+  background: rgba(180,70,70,0.08);
+  border: 1px solid rgba(180,70,70,0.3);
+  border-left: 3px solid #d68585;
+  padding: 1.2rem 1.4rem;
+  margin: 1.5rem 0;
+  border-radius: 2px;
+}
+.error-card .err-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: #d68585;
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+.error-card .err-body {
+  font-size: 0.88rem;
+  color: rgba(245,240,232,0.75);
+  margin-bottom: 0.8rem;
+}
+.error-card .err-retry {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.error-card .err-retry:hover {
+  background: var(--gold-faint);
+  border-color: var(--gold);
+}
+
+/* ─── Engine analysis block ───────────────────────────────── */
+.engine-block {
+  margin-top: 1.75rem;
+  background: rgba(26,46,26,0.18);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.engine-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.engine-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0;
+}
+.engine-depth {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: rgba(245,240,232,0.38);
+  text-transform: uppercase;
+  transition: color 0.3s var(--ease);
+}
+.engine-depth.live { color: rgba(201,168,76,0.75); }
+
+/* Evaluation bar */
+.engine-eval-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(184,144,144,0.18);
+  overflow: hidden;
+  border: 1px solid rgba(201,168,76,0.12);
+}
+.engine-eval-fill {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 50%;
+  background: linear-gradient(90deg, var(--cream) 0%, rgba(245,240,232,0.85) 100%);
+  border-radius: 999px 0 0 999px;
+  transition: width 0.55s var(--ease);
+}
+.engine-eval-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.engine-eval-label--white { left: 0.55rem;  color: var(--black-near); }
+.engine-eval-label--black { right: 0.55rem; color: rgba(245,240,232,0.55); }
+
+/* PV list */
+.engine-pvlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.engine-pvline {
+  display: grid;
+  grid-template-columns: 1.2rem 3.8rem 1fr;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(13,13,13,0.35);
+  border: 1px solid rgba(201,168,76,0.08);
+  min-height: 2.2rem;
+}
+.engine-pvline:first-child {
+  border-color: rgba(201,168,76,0.2);
+  background: rgba(26,46,26,0.3);
+}
+.pv-rank {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.75rem;
+  color: rgba(201,168,76,0.45);
+  line-height: 1;
+}
+.engine-pvline:first-child .pv-rank { color: var(--gold); }
+.pv-score {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.pv-score.negative   { color: #b89090; }
+.pv-score.mate-score { color: var(--gold-light); }
+.pv-moves {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: rgba(245,240,232,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.engine-pvline:first-child .pv-moves { color: rgba(245,240,232,0.82); }
+
+/* Skeleton pulse while waiting for first depth */
+.engine-pvline.loading .pv-score,
+.engine-pvline.loading .pv-moves {
+  background: rgba(201,168,76,0.07);
+  border-radius: 4px;
+  color: transparent;
+  animation: pvPulse 1.4s ease-in-out infinite;
+}
+.engine-pvline.loading .pv-score { width: 3rem;  display: inline-block; }
+.engine-pvline.loading .pv-moves { width: 70%; display: inline-block; }
+@keyframes pvPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.9; }
+}
+
+@media (max-width: 480px) {
+  .engine-pvline {
+    grid-template-columns: 1rem 3rem 1fr;
+    gap: 0.45rem;
+    padding: 0.5rem 0.6rem;
+  }
+  .pv-moves { font-size: 0.72rem; }
+  .engine-block { padding: 1.1rem 1.1rem 1.4rem; }
+}
+
+/* ─── Chess board block ────────────────────────────────────── */
+.board-block { margin-top: 1.75rem; }
+.board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.board-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0;
+}
+.board-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.edited-tag {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.5rem;
+  margin: 0 0.4rem 0 0.1rem;
+  color: var(--gold);
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.28);
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+.board-ctrl-btn {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245,240,232,0.55);
+  background: transparent;
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.board-ctrl-btn:hover {
+  color: var(--cream);
+  border-color: var(--gold-dim);
+  background: var(--gold-faint);
+}
+.board-ctrl-btn--primary { color: var(--gold); border-color: rgba(201,168,76,0.4); }
+.board-ctrl-btn--primary:hover { background: rgba(201,168,76,0.12); border-color: var(--gold); }
+
+.board-layout {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Sidebars */
+.piece-sidebar {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0.5rem 0.25rem;
+  background: rgba(13,13,13,0.25);
+  border: 1px solid rgba(201,168,76,0.1);
+  border-radius: 10px;
+  min-height: 240px;
+  flex-direction: row;
+}
+.piece-sidebar.drag-over {
+  background: rgba(201,168,76,0.06);
+  border-color: rgba(201,168,76,0.3);
+}
+.piece-col { display: flex; flex-direction: column; gap: 5px; }
+.sb-piece {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.35rem;
+  line-height: 1;
+  border-radius: 6px;
+  background: rgba(26,46,26,0.3);
+  border: 1px solid rgba(201,168,76,0.1);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  transition: background var(--transition), border-color var(--transition), transform 0.15s var(--ease);
+}
+.sb-piece:hover {
+  background: rgba(201,168,76,0.1);
+  border-color: rgba(201,168,76,0.35);
+  transform: scale(1.08);
+}
+.sb-piece:active { cursor: grabbing; }
+.sb-piece.piece-white {
+  color: var(--cream);
+  text-shadow:
+    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
+    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d;
+}
+.sb-piece.piece-black {
+  color: #0d0d0d;
+  text-shadow:
+    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
+    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream);
+}
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 2.4rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+}
+
+/* Board grid */
+.board-container { width: 100%; max-width: 440px; margin: 0 auto; }
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  aspect-ratio: 1;
+  border: 2px solid rgba(201,168,76,0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+}
+
+/* Squares */
+.board-square {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: background 0.15s;
+}
+.sq-light { background: rgba(201,168,76,0.18); }
+.sq-dark  { background: rgba(26,46,26,0.75); }
+.board-square.drag-over.sq-light { background: rgba(201,168,76,0.55); }
+.board-square.drag-over.sq-dark  { background: rgba(201,168,76,0.35); }
+
+/* Coordinate labels */
+.sq-rank-label, .sq-file-label {
+  position: absolute;
+  font-size: 0.52rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.55;
+  pointer-events: none;
+  font-family: var(--font-body);
+}
+.sq-rank-label { top: 2px; left: 3px; }
+.sq-file-label { bottom: 2px; right: 3px; }
+.sq-light .sq-rank-label, .sq-light .sq-file-label { color: rgba(26,46,26,0.7); }
+.sq-dark  .sq-rank-label, .sq-dark  .sq-file-label { color: rgba(201,168,76,0.7); }
+
+/* Pieces on board */
+.board-piece {
+  font-size: clamp(1.3rem, 5.5cqi, 2.4rem);
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.1s;
+}
+.board-piece:active { cursor: grabbing; }
+.board-piece.dragging { opacity: 0.3; }
+.board-piece.piece-white {
+  color: var(--cream);
+  text-shadow:
+    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
+    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d,
+     0   -1px 0 #0d0d0d,  0    1px 0 #0d0d0d,
+    -1px  0   0 #0d0d0d,  1px  0   0 #0d0d0d,
+     0    2px 3px rgba(0,0,0,0.5);
+}
+.board-piece.piece-black {
+  color: #0d0d0d;
+  text-shadow:
+    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
+    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream),
+     0   -1px 0 var(--cream),  0    1px 0 var(--cream),
+    -1px  0   0 var(--cream),  1px  0   0 var(--cream);
+}
+
+/* Hint */
+.board-hint {
+  text-align: center;
+  font-size: 0.7rem;
+  color: rgba(245,240,232,0.28);
+  letter-spacing: 0.04em;
+  margin-top: 0.75rem;
+}
+
+/* Mobile: stack sidebars horizontally */
+@media (max-width: 560px) {
+  .board-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .piece-sidebar--left  { order: 1; min-height: unset; flex-direction: row; padding: 0.4rem; justify-content: center; }
+  .board-container      { order: 2; }
+  .piece-sidebar--right { order: 3; min-height: unset; flex-direction: row; padding: 0.4rem; justify-content: center; }
+  .piece-col { flex-direction: row; }
+}
+
+/* ─── Opening badge ────────────────────────────────────────── */
+.opening-badge {
+  display: none;
+  align-self: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1.05rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  background: rgba(201,168,76,0.08);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--gold-light);
+  letter-spacing: 0.02em;
+}
+.opening-badge.visible { display: inline-flex; }
+.opening-badge .opening-glyph {
+  font-style: normal;
+  font-size: 0.85rem;
+  color: var(--gold);
+  opacity: 0.8;
+}
+.opening-badge .opening-label {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.7;
+  margin-right: 0.15rem;
+}
+
+/* ─── Uncertain square pulse ──────────────────────────────── */
+.board-square.sq-uncertain::after {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: 6px;
+  border: 1.5px solid rgba(223,192,106,0.7);
+  pointer-events: none;
+  animation: sqUncertainPulse 2s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes sqUncertainPulse {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 0 0 rgba(223,192,106,0.0); }
+  50%       { opacity: 0.95; box-shadow: 0 0 8px 2px rgba(223,192,106,0.35); }
+}
+.board-legend {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 0.6rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(245,240,232,0.55);
+}
+.board-legend.visible { display: flex; }
+.board-legend .legend-icon {
+  color: var(--gold-light);
+  font-size: 0.85rem;
+}
+
+/* ─── Quick-action buttons ────────────────────────────────── */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+.quick-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-action:hover {
+  background: var(--gold-faint);
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+.quick-action .qa-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* ─── History drawer ──────────────────────────────────────── */
+.history-block {
+  width: 100%;
+  max-width: 720px;
+  margin: 1.5rem auto 0;
+}
+.history-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(201,168,76,0.18);
+  border-radius: 12px;
+  background: rgba(13,13,13,0.45);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.history-toggle:hover {
+  background: rgba(26,46,26,0.4);
+  border-color: var(--gold-dim);
+}
+.history-toggle .history-count {
+  color: var(--gold);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+}
+.history-toggle .history-caret {
+  color: var(--gold);
+  transition: transform var(--transition);
+}
+.history-block.open .history-caret { transform: rotate(180deg); }
+.history-list {
+  display: none;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(201,168,76,0.12);
+  border-radius: 12px;
+  background: rgba(13,13,13,0.4);
+}
+.history-block.open .history-list { display: flex; }
+.history-empty {
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(245,240,232,0.4);
+  padding: 0.8rem 0.4rem;
+  font-style: italic;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(201,168,76,0.12);
+  border-radius: 10px;
+  background: rgba(26,46,26,0.18);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), border-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.history-item:hover {
+  background: rgba(26,46,26,0.4);
+  border-color: rgba(201,168,76,0.35);
+}
+.history-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--gold-dim);
+  background: var(--green-deep);
+  flex-shrink: 0;
+}
+.history-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--gold-dim);
+}
+.history-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.history-opening {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--gold-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-opening.untitled {
+  color: rgba(245,240,232,0.65);
+  font-style: normal;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+}
+.history-fen {
+  font-family: 'Inter', monospace;
+  font-size: 0.7rem;
+  color: rgba(245,240,232,0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-time {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(201,168,76,0.55);
+}
+.history-clear {
+  margin-top: 0.35rem;
+  background: none;
+  border: none;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(245,240,232,0.4);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  align-self: center;
+  padding: 0.4rem;
+  font-family: var(--font-body);
+}
+.history-clear:hover { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<!-- Floating background pieces -->
+<div class="bg-pieces" aria-hidden="true">
+  <span class="bg-piece">♜</span>
+  <span class="bg-piece">♝</span>
+  <span class="bg-piece">♛</span>
+  <span class="bg-piece">♞</span>
+  <span class="bg-piece">♟</span>
+  <span class="bg-piece">♜</span>
+  <span class="bg-piece">♛</span>
+</div>
+
+<!-- Nav -->
+<nav id="nav" role="navigation" aria-label="Site navigation">
+  <div style="display:inline-flex;align-items:center;gap:0.55rem;">
+    <a href="index.html" class="nav-logo">ChessSight<span class="ai">.ai</span></a>
+    <span class="beta-badge">Beta</span>
+  </div>
+  <a href="index.html" class="nav-btn">← Back to Home</a>
+</nav>
+
+<!-- Main page -->
+<main class="page" role="main">
+
+  <p class="page-eyebrow reveal">Position Analysis</p>
+  <h1 class="page-title reveal reveal-d1">Read the <em>board</em></h1>
+
+  <div class="main-card">
+
+    <!-- Mode selector -->
+    <div class="mode-selector reveal reveal-d2">
+      <div class="mode-pill" role="group" aria-label="Analysis mode">
+        <button class="mode-btn active" data-mode="photo"  aria-pressed="true">Photo</button>
+        <button class="mode-btn"        data-mode="photos" aria-pressed="false">Photos</button>
+        <button class="mode-btn"        data-mode="video"  aria-pressed="false">Video</button>
+      </div>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="upload-zone reveal reveal-d3" id="uploadZone" role="button" tabindex="0" aria-label="Upload your chess board image">
+      <input type="file" id="fileInput" accept="image/*" style="opacity: 0; position: absolute; width: 0; height: 0; pointer-events: none;">
+      <div class="upload-glyph" aria-hidden="true">♟</div>
+      <p class="upload-label">Drop your board here</p>
+      <p class="upload-sub">or click to browse from your device</p>
+      <div class="upload-formats">
+        <span class="format-tag">JPG</span>
+        <span class="format-tag">PNG</span>
+        <span class="format-tag">WEBP</span>
+        <span class="format-tag" id="videoTag" style="display:none">MP4</span>
+        <span class="format-tag" id="videoTag2" style="display:none">MOV</span>
+      </div>
+      <!-- Preview area (shown after upload) -->
+      <div class="preview-grid" id="previewGrid"></div>
+      <button class="clear-btn" id="clearBtn" style="display:none" type="button" aria-label="Remove selected files">Remove files</button>
+    </div>
+
+    <!-- Analyse button -->
+    <button class="analyse-btn" id="analyseBtn" type="button" disabled aria-label="Analyse chess position">
+      <span class="btn-text">Analyse Position</span>
+      <span class="btn-spinner" aria-live="polite">
+        <span class="spin-ring" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="11" stroke="rgba(201,168,76,0.25)" stroke-width="2"/>
+            <path d="M14 3 A11 11 0 0 1 25 14" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="spin-piece" aria-hidden="true">♞</span>
+        <span class="spin-label">Reading the board…</span>
+      </span>
+    </button>
+
+    <!-- Checker divider (shown with results) -->
+    <div class="chess-checker-divider" id="checkerDivider" style="display:none" aria-hidden="true"></div>
+
+    <!-- Results panel -->
+    <section class="results-panel" id="resultsPanel" aria-label="Analysis results" aria-live="polite">
+      <p class="results-heading">Analysis Complete</p>
+
+      <span class="opening-badge" id="openingBadge" role="status">
+        <span class="opening-glyph" aria-hidden="true">♟</span>
+        <span class="opening-label">Opening</span>
+        <span class="opening-name" id="openingName"></span>
+      </span>
+
+      <div class="download-row">
+        <div class="dl-card" role="button" tabindex="0" aria-label="Download FEN notation">
+          <div class="dl-format">FEN</div>
+          <p class="dl-desc">Forsyth–Edwards Notation — encodes the full board state in a single portable string.</p>
+          <span class="dl-cta">
+            Download
+            <span class="dl-arrow" aria-hidden="true">↓</span>
+          </span>
+        </div>
+        <div class="dl-card" role="button" tabindex="0" aria-label="Download PGN file">
+          <div class="dl-format">PGN</div>
+          <p class="dl-desc">Portable Game Notation — import directly into any chess database or analysis engine.</p>
+          <span class="dl-cta">
+            Download
+            <span class="dl-arrow" aria-hidden="true">↓</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="confidence-bar" id="confidenceBar" style="display:none" role="alert">
+        <span class="warn-icon" aria-hidden="true">⚠</span>
+        <span class="warn-text" id="confidenceText"></span>
+      </div>
+
+      <div class="feedback-block">
+        <div class="feedback-meta">
+          <span class="complexity-pill" id="complexityPill"></span>
+          <span class="evaluation-line" id="evaluationLine"></span>
+        </div>
+        <p class="feedback-eyebrow">Position Feedback</p>
+        <p class="feedback-text" id="feedbackText"></p>
+      </div>
+
+      <!-- Stockfish engine analysis panel -->
+      <div class="engine-block" id="engineBlock" style="display:none" aria-label="Stockfish engine analysis" aria-live="polite">
+        <div class="engine-header">
+          <p class="engine-eyebrow">Engine Analysis</p>
+          <span class="engine-depth" id="engineDepth">depth —</span>
+        </div>
+        <div class="engine-eval-bar" aria-hidden="true">
+          <div class="engine-eval-fill" id="engineEvalFill"></div>
+          <span class="engine-eval-label engine-eval-label--white" id="engineEvalLabelW"></span>
+          <span class="engine-eval-label engine-eval-label--black" id="engineEvalLabelB"></span>
+        </div>
+        <ol class="engine-pvlist" id="enginePvList" aria-label="Principal variations">
+          <li class="engine-pvline loading" id="enginePv1"><span class="pv-rank">1</span><span class="pv-score" id="pvScore1"></span><span class="pv-moves" id="pvMoves1"></span></li>
+          <li class="engine-pvline loading" id="enginePv2"><span class="pv-rank">2</span><span class="pv-score" id="pvScore2"></span><span class="pv-moves" id="pvMoves2"></span></li>
+          <li class="engine-pvline loading" id="enginePv3"><span class="pv-rank">3</span><span class="pv-score" id="pvScore3"></span><span class="pv-moves" id="pvMoves3"></span></li>
+        </ol>
+      </div>
+
+      <!-- Interactive chess board -->
+      <div class="board-block" id="boardBlock" style="display:none">
+
+        <div class="board-header">
+          <p class="board-eyebrow">Board Position</p>
+          <div class="board-controls">
+            <button class="board-ctrl-btn" id="toggleStmBtn" type="button" aria-label="Toggle side to move"><span id="toggleStmLabel">⇄ White to move</span></button>
+            <button class="board-ctrl-btn" id="flipBoardBtn" type="button" aria-label="Flip board">⟳ Flip</button>
+            <button class="board-ctrl-btn board-ctrl-btn--primary" id="reanalyseBtn" type="button">Re-analyse</button>
+          </div>
+        </div>
+
+        <div class="board-layout">
+
+          <!-- Left sidebar: white pieces, 2 columns -->
+          <div class="piece-sidebar piece-sidebar--left" id="pieceSidebarLeft" aria-label="White pieces">
+            <div class="piece-col">
+              <span class="sb-piece piece-white" draggable="true" data-piece="K" title="White King">♚</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="Q" title="White Queen">♛</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="R" title="White Rook">♜</span>
+            </div>
+            <div class="piece-col">
+              <span class="sb-piece piece-white" draggable="true" data-piece="B" title="White Bishop">♝</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="N" title="White Knight">♞</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="P" title="White Pawn">♟</span>
+            </div>
+          </div>
+
+          <!-- Board grid (rendered by JS) -->
+          <div class="board-container">
+            <div class="board-grid" id="boardGrid" role="grid" aria-label="Chess board"></div>
+          </div>
+
+          <!-- Right sidebar: black pieces, 2 columns -->
+          <div class="piece-sidebar piece-sidebar--right" id="pieceSidebarRight" aria-label="Black pieces">
+            <div class="piece-col">
+              <span class="sb-piece piece-black" draggable="true" data-piece="k" title="Black King">♚</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="q" title="Black Queen">♛</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="r" title="Black Rook">♜</span>
+            </div>
+            <div class="piece-col">
+              <span class="sb-piece piece-black" draggable="true" data-piece="b" title="Black Bishop">♝</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="n" title="Black Knight">♞</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="p" title="Black Pawn">♟</span>
+            </div>
+          </div>
+
+        </div><!-- /.board-layout -->
+
+        <p class="board-hint">Drag pieces to adjust · Drop onto a sidebar to remove</p>
+
+        <p class="board-legend" id="boardLegend">
+          <span class="legend-icon" aria-hidden="true">⚠</span>
+          Uncertain square — verify before use.
+        </p>
+
+        <div class="quick-actions" id="quickActions" style="margin-top:1.1rem;">
+          <a class="quick-action" id="lichessLink" target="_blank" rel="noopener noreferrer" href="#">
+            <span class="qa-icon" aria-hidden="true">♞</span> Open in Lichess
+          </a>
+          <a class="quick-action" id="chesscomLink" target="_blank" rel="noopener noreferrer" href="#">
+            <span class="qa-icon" aria-hidden="true">♛</span> Open in Chess.com
+          </a>
+        </div>
+
+      </div><!-- /#boardBlock -->
+
+    </section>
+
+  </div><!-- /.main-card -->
+
+  <!-- History drawer -->
+  <div class="history-block reveal" id="historyBlock" aria-label="Recent analyses">
+    <button class="history-toggle" id="historyToggle" type="button" aria-expanded="false" aria-controls="historyList">
+      <span>Recent Analyses</span>
+      <span class="history-count" id="historyCount">0</span>
+      <span class="history-caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="history-list" id="historyList" role="list"></div>
+  </div>
+</main>
+
+<footer class="page-footer">
+  &copy; 2026 ChessSight<span style="color:var(--gold-dim);font-style:italic;">.ai</span> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── API config ──────────────────────────────────────────── */
+  const GEMINI_URL       = 'https://chessight-api.chessight.workers.dev';
+  const MAX_INLINE_BYTES = 20 * 1024 * 1024;
+
+  const SYSTEM_INSTRUCTION = `You are ChessSight.ai, an expert chess vision system. You receive one or more photos (or a video) of a real, physical chess board and the field \`input_type\` ("single_image" | "multi_image" | "video"). Real-life photos vary in angle, lighting, piece set, and clarity — accuracy matters more than completeness.
+
+Return a SINGLE JSON object. No prose. No markdown fences.
+
+═══════════════════════════════════════════
+METHODOLOGY — follow in this order
+═══════════════════════════════════════════
+
+1. ORIENT THE BOARD.
+   Find a corner cue: a labelled square, a clock on one side, the lighter square at the bottom-right (a1 dark, h1 light is the canonical setup), or piece colours along the back ranks. Decide which corner is a1. State this in your analysis_log.
+
+2. IDENTIFY THE PIECE SET.
+   Note the style — Staunton, plastic tournament, themed/figurine, etc. — and the colour pair (e.g. cream vs walnut). This anchors what each piece silhouette looks like for THIS photo.
+
+3. SCAN SQUARE BY SQUARE.
+   Walk rank 8 down to rank 1, files a → h. For each occupied square, name (square, colour, piece). Examples: "e1: white king", "f3: white knight", "d7: black pawn". If a square is empty, you may skip naming it but include it implicitly in the rank summary.
+
+4. BIAS TOWARD EMPTY ON DOUBT.
+   If a square is blurry, occluded, in shadow, or you are not 95%+ sure of the piece, mark it empty AND add it to low_confidence_squares. A missing piece is fixable in one click. A wrong piece looks confident and misleads the engine analysis. Never guess.
+
+5. COMMIT THE FEN ONLY AFTER STEPS 1–4.
+   The piece_placement string must be derived from your square-by-square reading, not from a glance at the image.
+
+═══════════════════════════════════════════
+INPUT-TYPE RULES
+═══════════════════════════════════════════
+
+single_image:
+- One still photo. You CANNOT know move history, castling rights, en passant, or whose turn it is.
+- side_to_move = "unknown", castling = "unknown", en_passant = "unknown".
+- Do NOT return moves_san.
+- feedback is neutral: "This position favours White because…" — never "You should play…".
+
+multi_image:
+- Multiple angles/moments of the SAME position. Cross-check between images, especially for occluded squares.
+- Same unknowns as single_image unless a clock/scoresheet/arrow clearly indicates side to move.
+
+video:
+- Sample frames; if pieces visibly move you may infer side_to_move and fill moves_san in SAN order.
+- Otherwise fall back to "unknown".
+
+═══════════════════════════════════════════
+OUTPUT JSON SCHEMA
+═══════════════════════════════════════════
+
+{
+  "analysis_log": "<≤300 words. Brief notes from steps 1–3: orientation cue, piece set, then a per-rank summary like 'rank 8: rook a8, knight b8, bishop c8, queen d8, king e8, ...; rank 7: pawns a7-h7 except d7 empty; ...'.>",
+  "piece_placement": "<FEN first field — eight ranks separated by '/' using KQRBNPkqrbnp and digits 1-8 only>",
+  "side_to_move": "white" | "black" | "unknown",
+  "castling": "KQkq" | subset like "Kq" | "-" | "unknown",
+  "en_passant": "<square like e3>" | "-" | "unknown",
+  "moves_san": ["e4","e5", ...]   // ONLY for video with observed moves; omit otherwise
+  "low_confidence_squares": ["<square>", ...],   // squares you marked empty due to doubt OR pieces you're <90% sure about; [] if all clear
+  "confidence": "high" | "medium" | "low",
+  "confidence_notes": "<short>",
+  "evaluation": "white" | "black" | "equal",
+  "complexity": "Quiet" | "Complex" | "Critical",
+  "feedback": "<80–160 words. Wrap chess terms in [[double brackets]] like [[Ruy López]], [[bishop on b5]], [[d5]]. Neutral perspective for image inputs.>"
+}
+
+If no board is detectable: { "error": "no_board_detected", "feedback": "<short reason>" }
+
+═══════════════════════════════════════════
+EXAMPLE — well-handled photo
+═══════════════════════════════════════════
+
+Photo: clean overhead shot of a Staunton set, starting position. Output:
+{
+  "analysis_log": "a1 corner identified bottom-left from white pieces on near rank. Staunton plastic, white vs black. Rank 8: r,n,b,q,k,b,n,r. Rank 7: pawns a7-h7. Ranks 6-3 empty. Rank 2: pawns a2-h2. Rank 1: R,N,B,Q,K,B,N,R.",
+  "piece_placement": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+  "side_to_move": "unknown",
+  "castling": "unknown",
+  "en_passant": "unknown",
+  "low_confidence_squares": [],
+  "confidence": "high",
+  "confidence_notes": "",
+  "evaluation": "equal",
+  "complexity": "Quiet",
+  "feedback": "Standard [[starting position]]. Both sides have full development to come..."
+}
+
+═══════════════════════════════════════════
+EXAMPLE — partially-occluded photo (correct handling)
+═══════════════════════════════════════════
+
+Photo: side-angle shot, a hand partially blocks ranks 6–7 on the queenside.
+Correct behaviour: mark the obscured squares empty in piece_placement AND list them in low_confidence_squares. Set confidence "medium" with a note like "ranks 6-7 a-c partially occluded by hand". Do NOT invent pieces under the hand.
+
+═══════════════════════════════════════════
+HARD RULES
+═══════════════════════════════════════════
+- Each side has at most one king. If you "see" two white kings, one is wrong — re-examine.
+- Pawns never sit on rank 1 or rank 8.
+- Total piece count rarely exceeds 32; if your reading exceeds 32, you've duplicated.
+- If unsure between empty and a pawn, prefer empty.
+- Never wrap output in markdown. Never add commentary outside the JSON.`;
+
+  /* ── Nav scroll glass ────────────────────────────────── */
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 10);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ── Reveal on scroll ────────────────────────────────── */
+  const revealEls = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in-view'); observer.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => observer.observe(el));
+
+  /* ── Mode selector ───────────────────────────────────── */
+  const modeBtns   = document.querySelectorAll('.mode-btn');
+  const fileInput  = document.getElementById('fileInput');
+  const videoTags  = [document.getElementById('videoTag'), document.getElementById('videoTag2')];
+  const uploadGlyph = document.querySelector('.upload-glyph');
+
+  const GLYPHS = { photo: '♟', photos: '♜', video: '♛' };
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed','true');
+
+      const mode = btn.dataset.mode;
+      uploadGlyph.textContent = GLYPHS[mode];
+
+      if (mode === 'video') {
+        fileInput.setAttribute('accept', 'video/*');
+        fileInput.removeAttribute('multiple');
+        videoTags.forEach(t => t.style.display = '');
+      } else if (mode === 'photos') {
+        fileInput.setAttribute('accept', 'image/*');
+        fileInput.setAttribute('multiple', '');
+        videoTags.forEach(t => t.style.display = 'none');
+      } else {
+        fileInput.setAttribute('accept', 'image/*');
+        fileInput.removeAttribute('multiple');
+        videoTags.forEach(t => t.style.display = 'none');
+      }
+
+      clearFiles();
+    });
+  });
+
+  /* ── Drag & drop ─────────────────────────────────────── */
+  const zone = document.getElementById('uploadZone');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+  zone.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) handleFiles(fileInput.files);
+  });
+
+  /* ── File tracking ───────────────────────────────────── */
+  let selectedFiles = [];
+
+  const previewGrid = document.getElementById('previewGrid');
+  const clearBtn    = document.getElementById('clearBtn');
+  const analyseBtn  = document.getElementById('analyseBtn');
+
+  function handleFiles(files) {
+    clearFiles(false);
+    selectedFiles = Array.from(files);
+
+    // Honour the active mode constraint
+    const activeMode = document.querySelector('.mode-btn.active').dataset.mode;
+    if (activeMode === 'photo' || activeMode === 'video') {
+      selectedFiles = selectedFiles.slice(0, 1);
+    }
+
+    selectedFiles.forEach(file => {
+      if (file.type.startsWith('video/')) {
+        const vid = document.createElement('video');
+        vid.src = URL.createObjectURL(file);
+        vid.className = 'preview-video';
+        vid.controls = true;
+        vid.muted    = true;
+        previewGrid.appendChild(vid);
+      } else {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.className = 'preview-thumb';
+        img.alt = 'Chess board preview';
+        previewGrid.appendChild(img);
+      }
+    });
+
+    previewGrid.classList.add('visible');
+    clearBtn.style.display = '';
+    analyseBtn.disabled = false;
+    zone.classList.add('has-files');
+  }
+
+  function clearFiles(resetInput = true) {
+    selectedFiles = [];
+    previewGrid.innerHTML = '';
+    previewGrid.classList.remove('visible');
+    zone.classList.remove('has-files');
+    clearBtn.style.display = 'none';
+    analyseBtn.disabled = true;
+    if (resetInput) fileInput.value = '';
+    lowConfidenceSquares = [];
+    if (typeof setOpeningBadge === 'function') setOpeningBadge(null);
+    if (typeof clearShareUrl === 'function') clearShareUrl();
+    hideResults();
+  }
+
+  clearBtn.addEventListener('click', e => { e.stopPropagation(); clearFiles(); });
+
+  /* ── Results panel refs ──────────────────────────────── */
+  const resultsPanel   = document.getElementById('resultsPanel');
+  const checkerDivider = document.getElementById('checkerDivider');
+  const downloadRow    = resultsPanel.querySelector('.download-row');
+  const feedbackBlock  = resultsPanel.querySelector('.feedback-block');
+  const feedbackText   = document.getElementById('feedbackText');
+  const confidenceBar  = document.getElementById('confidenceBar');
+  const confidenceText = document.getElementById('confidenceText');
+  const complexityPill = document.getElementById('complexityPill');
+  const evaluationLine = document.getElementById('evaluationLine');
+  const openingBadge   = document.getElementById('openingBadge');
+  const openingName    = document.getElementById('openingName');
+  const boardLegend    = document.getElementById('boardLegend');
+  const lichessLink    = document.getElementById('lichessLink');
+  const chesscomLink   = document.getElementById('chesscomLink');
+  const fenCard        = downloadRow.children[0];
+  const pgnCard        = downloadRow.children[1];
+
+  let lowConfidenceSquares = [];
+
+  /* ── Progressive loading messages ───────────────────── */
+  const LOADING_MSGS = ['Preparing image…', 'Reading the board…', 'Identifying pieces…', 'Verifying position…', 'Generating feedback…'];
+  let msgInterval = null;
+  const spinLabel = document.querySelector('.spin-label');
+
+  function startLoadingMessages() {
+    let i = 0;
+    spinLabel.textContent = LOADING_MSGS[0];
+    msgInterval = setInterval(() => {
+      i = (i + 1) % LOADING_MSGS.length;
+      spinLabel.textContent = LOADING_MSGS[i];
+    }, 1600);
+  }
+
+  function stopLoadingMessages() {
+    if (msgInterval) { clearInterval(msgInterval); msgInterval = null; }
+    spinLabel.textContent = LOADING_MSGS[0];
+  }
+
+  /* ── FileReader helper ───────────────────────────────── */
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result.substring(e.target.result.indexOf(',') + 1));
+      reader.onerror = () => reject(new Error('FileReader failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Image compression ───────────────────────────────── */
+  // Resize + re-encode images via canvas. Returns { mimeType, base64 }.
+  // Falls back to the original file if the image can't be decoded.
+  async function compressImage(file) {
+    const MAX_EDGE = 2048;
+    const QUALITY  = 0.92;
+
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload  = () => resolve(i);
+        i.onerror = () => reject(new Error('image_decode_failed'));
+        i.src = url;
+      });
+
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (!w || !h) throw new Error('image_zero_dimensions');
+
+      const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, 'image/jpeg', QUALITY)
+      );
+      if (!blob) throw new Error('canvas_toBlob_failed');
+
+      return {
+        mimeType: 'image/jpeg',
+        base64:   await fileToBase64(blob)
+      };
+    } catch (err) {
+      console.warn('[ChessSight] compressImage fallback:', err.message);
+      return {
+        mimeType: file.type || 'image/jpeg',
+        base64:   await fileToBase64(file)
+      };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  /* ── Fetch with retry on 5xx / 429 ───────────────────── */
+  async function fetchWithRetry(url, options, maxRetries = 2) {
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(url, options);
+        if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+          lastErr = new Error('HTTP ' + res.status);
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)));
+            continue;
+          }
+        }
+        return res;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 600 * Math.pow(2, attempt)));
+          continue;
+        }
+      }
+    }
+    throw lastErr;
+  }
+
+  /* ── Two-pass verifier ───────────────────────────────── */
+  // Sends the same image(s) plus the first-pass FEN back to Gemini and asks
+  // it to compare square-by-square. Best-effort: any failure falls through to
+  // the first-pass result.
+  const VERIFY_INSTRUCTION = `You are a chess-position verifier. You receive a photo (or photos) of a real chess board AND a candidate FEN piece-placement string from a previous reading. Your job: check it square by square and return corrections.
+
+METHOD
+1. Find a1 corner from a clear cue in the image.
+2. For each occupied square in the candidate FEN, confirm the piece matches the photo.
+3. For each empty square in the candidate FEN, check no piece is actually there.
+4. Bias toward empty on doubt — never invent a piece you can't clearly see.
+
+OUTPUT — single JSON object, no prose, no markdown:
+{
+  "corrections": [ { "square": "e4", "was": "P", "now": "." }, ... ],   // "." means empty
+  "piece_placement": "<corrected FEN first field, eight ranks separated by '/'>",
+  "confidence": "high" | "medium" | "low",
+  "notes": "<short>"
+}
+
+If nothing is wrong, return corrections: [] and the unchanged piece_placement.
+Each side has at most one king. Pawns never sit on rank 1 or rank 8. Total piece count rarely exceeds 32.`;
+
+  async function verifyPosition(firstPassPlacement, inlineDataParts, inputType) {
+    const verifyParts = [
+      { text: `input_type: ${inputType}\ncandidate_piece_placement: ${firstPassPlacement}` },
+      ...inlineDataParts
+    ];
+    const verifyBody = {
+      systemInstruction: { parts: [{ text: VERIFY_INSTRUCTION }] },
+      contents: [{ role: 'user', parts: verifyParts }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+        maxOutputTokens: 1024,
+        thinkingConfig: { thinkingBudget: 4096, includeThoughts: false }
+      }
+    };
+
+    const res = await fetchWithRetry(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(verifyBody)
+    });
+    if (!res.ok) throw new Error('verifier http ' + res.status);
+
+    const data = await res.json();
+    const txt  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!txt) throw new Error('verifier empty response');
+
+    const cleaned = txt.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+    return JSON.parse(cleaned);
+  }
+
+  /* ── Download helper ─────────────────────────────────── */
+  function triggerDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* ── Render helpers ──────────────────────────────────── */
+  function highlightTerms(text) {
+    return text.replace(/\[\[([^\]]+)\]\]/g, '<span class="term">$1</span>');
+  }
+
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  /* ── FEN / PGN assembly (client-side, authoritative) ─── */
+  function buildFEN(result) {
+    const placement = (result.piece_placement || '').trim();
+    if (!/^([rnbqkpRNBQKP1-8]+\/){7}[rnbqkpRNBQKP1-8]+$/.test(placement)) {
+      throw new Error('invalid_placement');
+    }
+
+    const stm =
+      result.side_to_move === 'white' ? 'w' :
+      result.side_to_move === 'black' ? 'b' :
+      'w';
+
+    const castling =
+      result.castling && result.castling !== 'unknown' && result.castling !== ''
+        ? result.castling
+        : 'KQkq';
+
+    const enPassant =
+      result.en_passant && result.en_passant !== 'unknown' && result.en_passant !== ''
+        ? result.en_passant
+        : '-';
+
+    return `${placement} ${stm} ${castling} ${enPassant} 0 1`;
+  }
+
+  function buildPGN(fen, movesSan) {
+    const today = new Date();
+    const dateStr =
+      today.getFullYear() + '.' +
+      String(today.getMonth() + 1).padStart(2, '0') + '.' +
+      String(today.getDate()).padStart(2, '0');
+
+    const headers = [
+      '[Event "ChessSight Analysis"]',
+      '[Site "ChessSight.ai"]',
+      `[Date "${dateStr}"]`,
+      '[Round "?"]',
+      '[White "?"]',
+      '[Black "?"]',
+      '[Result "*"]',
+      '[SetUp "1"]',
+      `[FEN "${fen}"]`
+    ].join('\n');
+
+    let movetext = '*';
+    if (Array.isArray(movesSan) && movesSan.length) {
+      const numbered = [];
+      for (let i = 0; i < movesSan.length; i++) {
+        if (i % 2 === 0) numbered.push(`${i / 2 + 1}.`);
+        numbered.push(movesSan[i]);
+      }
+      movetext = numbered.join(' ') + ' *';
+    }
+
+    return headers + '\n\n' + movetext + '\n';
+  }
+
+  /* ── Error renderer ──────────────────────────────────── */
+  function renderError(title, message) {
+    const existing = resultsPanel.querySelector('.error-card');
+    if (existing) existing.remove();
+
+    downloadRow.style.display  = 'none';
+    feedbackBlock.style.display = 'none';
+    confidenceBar.style.display = 'none';
+
+    const card = document.createElement('div');
+    card.className = 'error-card';
+    card.innerHTML =
+      `<div class="err-title">${title}</div>` +
+      `<div class="err-body">${message}</div>` +
+      `<button class="err-retry" type="button">Try again</button>`;
+
+    card.querySelector('.err-retry').addEventListener('click', () => {
+      card.remove();
+      downloadRow.style.display   = '';
+      feedbackBlock.style.display = '';
+      hideResults();
+      analyseBtn.disabled = selectedFiles.length === 0;
+    });
+
+    resultsPanel.querySelector('.results-heading').after(card);
+    showResults();
+  }
+
+  /* ── Results renderer ────────────────────────────────── */
+  function renderResults(result, fen, pgn) {
+    const existing = resultsPanel.querySelector('.error-card');
+    if (existing) existing.remove();
+    downloadRow.style.display   = '';
+    feedbackBlock.style.display = '';
+
+    fenCard.onclick    = () => triggerDownload(fen, 'chessight-position.fen', 'text/plain');
+    fenCard.onkeydown  = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    pgnCard.onclick    = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+    pgnCard.onkeydown  = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+
+    if (result.confidence === 'low' || result.confidence_notes) {
+      confidenceText.textContent = result.confidence_notes
+        ? 'Some pieces were ambiguous — ' + result.confidence_notes
+        : 'Low confidence reading — verify the position before exporting.';
+      confidenceBar.style.display = '';
+    } else {
+      confidenceBar.style.display = 'none';
+    }
+
+    const complexity = (result.complexity || 'Quiet').toString();
+    complexityPill.textContent = complexity;
+    complexityPill.className   = 'complexity-pill ' + complexity.toLowerCase();
+
+    aiVerdict      = result.evaluation;
+    aiFeedbackHtml = highlightTerms(result.feedback);
+    lastEngScore   = null;
+    setEvaluationFromAi(aiVerdict);
+
+    lowConfidenceSquares = Array.isArray(result.low_confidence_squares)
+      ? result.low_confidence_squares.slice()
+      : [];
+
+    showResults();
+    showBoard(fen);
+    refreshDerivedDisplays();
+    updateQuickActions(fen);
+    updateShareUrl(fen);
+    startEngine(fen);
+
+    // Best-effort enrichments — opening detection + history
+    fetchOpeningName(fen).then(name => {
+      setOpeningBadge(name);
+      const file = selectedFiles.find(f => f.type && f.type.startsWith('image/'));
+      pushHistoryEntry({ fen, opening: name, file }).catch(() => {});
+    });
+  }
+
+  /* ── Stockfish engine ────────────────────────────────────── */
+  const SF_URL    = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
+  const MULTI_PV  = 3;
+  const MAX_DEPTH = 20;
+
+  let sfWorker = null;
+  let sfReady  = false;
+  let sfBusy   = false;
+  let sfFen    = null;
+
+  const engineBlock      = document.getElementById('engineBlock');
+  const engineDepthEl    = document.getElementById('engineDepth');
+  const engineEvalFill   = document.getElementById('engineEvalFill');
+  const engineEvalLabelW = document.getElementById('engineEvalLabelW');
+  const engineEvalLabelB = document.getElementById('engineEvalLabelB');
+  const pvScoreEls = [
+    document.getElementById('pvScore1'),
+    document.getElementById('pvScore2'),
+    document.getElementById('pvScore3')
+  ];
+  const pvMovesEls = [
+    document.getElementById('pvMoves1'),
+    document.getElementById('pvMoves2'),
+    document.getElementById('pvMoves3')
+  ];
+  const pvLineEls = [
+    document.getElementById('enginePv1'),
+    document.getElementById('enginePv2'),
+    document.getElementById('enginePv3')
+  ];
+
+  function parseInfoLine(line) {
+    if (!line.startsWith('info '))     return null;
+    if (line.indexOf(' pv ')  === -1)  return null;
+    if (line.indexOf('multipv') === -1) return null;
+
+    const tokens = line.split(' ');
+    let depth = 0, multipv = 1, scoreCp = null, scoreMate = null, pvStart = -1;
+
+    for (let i = 1; i < tokens.length; i++) {
+      switch (tokens[i]) {
+        case 'depth':   depth   = parseInt(tokens[++i], 10); break;
+        case 'multipv': multipv = parseInt(tokens[++i], 10); break;
+        case 'score':
+          if (tokens[i + 1] === 'cp') {
+            scoreCp  = parseInt(tokens[i + 2], 10); i += 2;
+          } else if (tokens[i + 1] === 'mate') {
+            scoreMate = parseInt(tokens[i + 2], 10); i += 2;
+          }
+          break;
+        case 'pv':
+          pvStart = i + 1;
+          i = tokens.length;
+          break;
+      }
+    }
+
+    if (pvStart === -1) return null;
+    return { depth, multipv, scoreCp, scoreMate, pvMoves: tokens.slice(pvStart) };
+  }
+
+  function formatScore(scoreCp, scoreMate, stm) {
+    const sign = stm === 'b' ? -1 : 1;
+    if (scoreMate !== null) {
+      const n = sign * scoreMate;
+      return { text: (n > 0 ? '#' : '-#') + Math.abs(n), isMate: true, isNeg: n < 0 };
+    }
+    const pawns = (sign * scoreCp / 100).toFixed(1);
+    const isNeg = parseFloat(pawns) < 0;
+    return { text: isNeg ? pawns : '+' + pawns, isMate: false, isNeg };
+  }
+
+  function uciMovesToSan(fen, uciMoves) {
+    if (typeof Chess === 'undefined') return uciMoves;
+    try {
+      const game = new Chess(fen);
+      const san  = [];
+      for (const uci of uciMoves) {
+        if (uci.length < 4) break;
+        const from = uci.slice(0, 2);
+        const to   = uci.slice(2, 4);
+        const promotion = uci.length === 5 ? uci[4] : undefined;
+        const result = game.move(promotion ? { from, to, promotion } : { from, to });
+        if (!result) break;
+        san.push(result.san);
+      }
+      return san;
+    } catch (e) {
+      console.warn('[ChessSight] chess.js error:', e);
+      return uciMoves;
+    }
+  }
+
+  function updateEvalBar(scoreCp, scoreMate, stm) {
+    const sign = stm === 'b' ? -1 : 1;
+    let whitePct;
+    if (scoreMate !== null) {
+      whitePct = sign * scoreMate > 0 ? 95 : 5;
+    } else {
+      const raw = Math.tanh((sign * scoreCp) / 350);
+      whitePct  = Math.max(5, Math.min(95, Math.round(50 + raw * 45)));
+    }
+    engineEvalFill.style.width = whitePct + '%';
+
+    const cp = sign * (scoreCp || 0);
+    engineEvalLabelW.textContent = whitePct > 55 ? (scoreMate !== null && sign * scoreMate > 0 ? '#' : '+' + (cp / 100).toFixed(1)) : '';
+    engineEvalLabelB.textContent = whitePct < 45 ? (scoreMate !== null && sign * scoreMate < 0 ? '#' : '+' + Math.abs(cp / 100).toFixed(1)) : '';
+  }
+
+  function updateEngineUI(parsed, fen) {
+    const stm    = (fen.split(' ')[1] || 'w');
+    const pvIdx  = parsed.multipv - 1;
+    if (pvIdx < 0 || pvIdx >= MULTI_PV) return;
+
+    const sanMoves = uciMovesToSan(fen, parsed.pvMoves);
+    const score    = formatScore(parsed.scoreCp, parsed.scoreMate, stm);
+
+    pvScoreEls[pvIdx].textContent = score.text;
+    pvScoreEls[pvIdx].className   = 'pv-score' + (score.isMate ? ' mate-score' : score.isNeg ? ' negative' : '');
+
+    const MAX_HALF = 8;
+    const isWhite  = stm === 'w';
+    const shown    = sanMoves.slice(0, MAX_HALF);
+    let moveStr    = '';
+    let moveNum    = parseInt(fen.split(' ')[5] || '1', 10);
+
+    for (let i = 0; i < shown.length; i++) {
+      if (i === 0 && isWhite)  { moveStr = moveNum + '. ' + shown[i]; }
+      else if (i === 0)        { moveStr = moveNum + '… ' + shown[i]; }
+      else if ((isWhite && i % 2 === 0) || (!isWhite && i % 2 === 1)) {
+        moveNum++;
+        moveStr += '  ' + moveNum + '. ' + shown[i];
+      } else {
+        moveStr += ' ' + shown[i];
+      }
+    }
+    if (sanMoves.length > MAX_HALF) moveStr += ' …';
+    pvMovesEls[pvIdx].textContent = moveStr;
+
+    pvLineEls[pvIdx].classList.remove('loading');
+
+    if (parsed.multipv === 1) {
+      engineDepthEl.textContent = 'depth ' + parsed.depth;
+      engineDepthEl.classList.add('live');
+      updateEvalBar(parsed.scoreCp, parsed.scoreMate, stm);
+      lastEngScore = { scoreCp: parsed.scoreCp, scoreMate: parsed.scoreMate, stm };
+      if (parsed.depth >= 12) {
+        setEvaluationFromEngine(parsed.scoreCp, parsed.scoreMate, stm);
+      }
+    }
+  }
+
+  function resetEngineUI() {
+    engineDepthEl.textContent = 'depth —';
+    engineDepthEl.classList.remove('live');
+    engineEvalFill.style.width = '50%';
+    engineEvalLabelW.textContent = '';
+    engineEvalLabelB.textContent = '';
+    pvLineEls.forEach(li => li.classList.add('loading'));
+    pvScoreEls.forEach(el => { el.textContent = ''; el.className = 'pv-score'; });
+    pvMovesEls.forEach(el => { el.textContent = ''; });
+    lastEngScore = null;
+  }
+
+  async function ensureWorker() {
+    if (sfWorker && sfReady) return;
+
+    if (sfWorker) {
+      await new Promise(resolve => {
+        const check = setInterval(() => { if (sfReady) { clearInterval(check); resolve(); } }, 50);
+      });
+      return;
+    }
+
+    const text = await fetch(SF_URL).then(r => r.text());
+    const blob = new Blob([text], { type: 'application/javascript' });
+    const url  = URL.createObjectURL(blob);
+    sfWorker   = new Worker(url);
+    URL.revokeObjectURL(url);
+
+    sfWorker.onmessage = function(e) {
+      const line = typeof e.data === 'string' ? e.data : '';
+      if (line === 'readyok')           { sfReady = true; return; }
+      if (line.startsWith('bestmove'))  { sfBusy  = false; return; }
+      if (line.startsWith('info ') && sfBusy && sfFen) {
+        const parsed = parseInfoLine(line);
+        if (parsed) updateEngineUI(parsed, sfFen);
+      }
+    };
+
+    sfWorker.onerror = function(err) {
+      console.error('[ChessSight] Stockfish error:', err);
+      sfWorker = null; sfReady = false;
+    };
+
+    sfWorker.postMessage('uci');
+    sfWorker.postMessage('isready');
+    await new Promise(resolve => {
+      const check = setInterval(() => { if (sfReady) { clearInterval(check); resolve(); } }, 50);
+    });
+  }
+
+  async function startEngine(fen) {
+    sfFen = fen;
+    engineBlock.style.display = '';
+    resetEngineUI();
+
+    try {
+      await ensureWorker();
+    } catch (err) {
+      console.error('[ChessSight] Could not load Stockfish:', err);
+      engineBlock.style.display = 'none';
+      return;
+    }
+
+    if (sfBusy) {
+      sfWorker.postMessage('stop');
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    sfBusy = true;
+    sfWorker.postMessage('ucinewgame');
+    sfWorker.postMessage('setoption name MultiPV value ' + MULTI_PV);
+    sfReady = false;
+    sfWorker.postMessage('isready');
+    await new Promise(resolve => {
+      const check = setInterval(() => { if (sfReady) { clearInterval(check); resolve(); } }, 50);
+    });
+
+    sfWorker.postMessage('position fen ' + fen);
+    sfWorker.postMessage('go depth ' + MAX_DEPTH);
+  }
+
+  function stopEngine() {
+    engineBlock.style.display = 'none';
+    sfFen = null;
+    if (sfWorker && sfBusy) {
+      sfWorker.postMessage('stop');
+      sfBusy = false;
+    }
+  }
+
+  /* ── Chess board ─────────────────────────────────────────── */
+  // Use filled glyphs for both sides; colour differentiates white vs black via CSS.
+  const PIECE_UNICODE = {
+    'K':'♚','Q':'♛','R':'♜','B':'♝','N':'♞','P':'♟',
+    'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'
+  };
+
+  let cbState        = Array(8).fill(null).map(() => Array(8).fill(null));
+  let cbFlipped      = false;
+  let cbFenMeta      = 'w KQkq - 0 1';
+  let cbReTimer      = null;
+  let originalFen    = null;
+  let aiFeedbackHtml = '';
+  let aiVerdict      = null;
+  let lastEngScore   = null;  // {scoreCp, scoreMate, stm}
+
+  function setEvaluationFromAi(verdict) {
+    if (verdict === 'white')      evaluationLine.innerHTML = "Advantage <span class='eval-side white'>White</span>";
+    else if (verdict === 'black') evaluationLine.innerHTML = "Advantage <span class='eval-side black'>Black</span>";
+    else                          evaluationLine.innerHTML = "<span class='eval-side equal'>Balanced position</span>";
+  }
+
+  function setEvaluationFromEngine(scoreCp, scoreMate, stm) {
+    const sign  = stm === 'b' ? -1 : 1;
+    const cpW   = scoreMate !== null ? sign * scoreMate * 10000 : sign * (scoreCp || 0);
+    if (cpW > 50)       evaluationLine.innerHTML = "Advantage <span class='eval-side white'>White</span>";
+    else if (cpW < -50) evaluationLine.innerHTML = "Advantage <span class='eval-side black'>Black</span>";
+    else                evaluationLine.innerHTML = "<span class='eval-side equal'>Balanced position</span>";
+  }
+
+  function syncFeedbackText() {
+    const stm     = (cbFenMeta.split(' ')[0] || 'w');
+    const word    = stm === 'w' ? 'White' : 'Black';
+    const edited  = originalFen && (getBoardFen() !== originalFen);
+    const tag     = edited ? '<span class="edited-tag" title="Position edited from original photo">edited</span>' : '';
+    feedbackText.innerHTML = '<em>' + word + ' to move.</em> ' + tag + (aiFeedbackHtml || '');
+  }
+
+  function updateStmButton() {
+    const stm  = (cbFenMeta.split(' ')[0] || 'w');
+    const word = stm === 'w' ? 'White' : 'Black';
+    const lbl  = document.getElementById('toggleStmLabel');
+    if (lbl) lbl.textContent = '⇄ ' + word + ' to move';
+  }
+
+  function refreshDerivedDisplays() {
+    syncFeedbackText();
+    updateStmButton();
+    if (lastEngScore) {
+      setEvaluationFromEngine(lastEngScore.scoreCp, lastEngScore.scoreMate, lastEngScore.stm);
+    } else if (originalFen && getBoardFen() === originalFen) {
+      setEvaluationFromAi(aiVerdict);
+    } else {
+      evaluationLine.innerHTML = "<span class='eval-side equal'>Analysing…</span>";
+    }
+  }
+
+  const boardBlock    = document.getElementById('boardBlock');
+  const boardGrid     = document.getElementById('boardGrid');
+  const pieceSidebarL = document.getElementById('pieceSidebarLeft');
+  const pieceSidebarR = document.getElementById('pieceSidebarRight');
+
+  function fenToState(placement) {
+    const state = Array(8).fill(null).map(() => Array(8).fill(null));
+    const rows  = placement.split('/');
+    for (let r = 0; r < 8; r++) {
+      let c = 0;
+      for (const ch of (rows[r] || '')) {
+        if (/\d/.test(ch)) { c += parseInt(ch, 10); }
+        else               { state[r][c] = ch; c++; }
+      }
+    }
+    return state;
+  }
+
+  function stateToFenPlacement(state) {
+    return state.map(row => {
+      let s = '', empty = 0;
+      for (const sq of row) {
+        if (sq) { if (empty) { s += empty; empty = 0; } s += sq; }
+        else    { empty++; }
+      }
+      if (empty) s += empty;
+      return s;
+    }).join('/');
+  }
+
+  function getBoardFen() {
+    return stateToFenPlacement(cbState) + ' ' + cbFenMeta;
+  }
+
+  function squareNameToRC(sq) {
+    if (typeof sq !== 'string' || sq.length !== 2) return null;
+    const file = sq.charCodeAt(0) - 97;       // a → 0
+    const rank = parseInt(sq[1], 10);          // 1..8
+    if (file < 0 || file > 7 || isNaN(rank) || rank < 1 || rank > 8) return null;
+    return { row: 8 - rank, col: file };
+  }
+
+  function rcToSquareName(r, c) {
+    return String.fromCharCode(97 + c) + (8 - r);
+  }
+
+  function renderChessBoard() {
+    boardGrid.innerHTML = '';
+    const uncertainSet = new Set(
+      (lowConfidenceSquares || [])
+        .map(s => (typeof s === 'string' ? s.toLowerCase() : ''))
+        .filter(Boolean)
+    );
+    if (boardLegend) boardLegend.classList.toggle('visible', uncertainSet.size > 0);
+
+    for (let vi = 0; vi < 8; vi++) {
+      for (let vj = 0; vj < 8; vj++) {
+        const r = cbFlipped ? 7 - vi : vi;
+        const c = cbFlipped ? 7 - vj : vj;
+
+        const isLight = (r + c) % 2 === 0;
+        const sq      = document.createElement('div');
+        sq.className   = 'board-square ' + (isLight ? 'sq-light' : 'sq-dark');
+        if (uncertainSet.has(rcToSquareName(r, c))) {
+          sq.classList.add('sq-uncertain');
+          sq.setAttribute('aria-label', rcToSquareName(r, c) + ' — uncertain');
+        }
+        sq.dataset.row = r;
+        sq.dataset.col = c;
+        sq.setAttribute('role', 'gridcell');
+
+        if (vj === 0) {
+          const lbl = document.createElement('span');
+          lbl.className   = 'sq-rank-label';
+          lbl.textContent = 8 - r;
+          sq.appendChild(lbl);
+        }
+        if (vi === 7) {
+          const lbl = document.createElement('span');
+          lbl.className   = 'sq-file-label';
+          lbl.textContent = 'abcdefgh'[c];
+          sq.appendChild(lbl);
+        }
+
+        const piece = cbState[r][c];
+        if (piece) {
+          const pe     = document.createElement('span');
+          pe.className = 'board-piece ' + (piece === piece.toUpperCase() ? 'piece-white' : 'piece-black');
+          pe.textContent   = PIECE_UNICODE[piece] || '';
+          pe.draggable     = true;
+          pe.dataset.piece   = piece;
+          pe.dataset.fromRow = r;
+          pe.dataset.fromCol = c;
+          pe.addEventListener('dragstart', onBoardPieceDragStart);
+          pe.addEventListener('dragend',   onBoardPieceDragEnd);
+          attachTouchDrag(pe, false);
+          sq.appendChild(pe);
+        }
+
+        sq.addEventListener('dragover',  onSquareDragOver);
+        sq.addEventListener('dragleave', onSquareDragLeave);
+        sq.addEventListener('drop',      onSquareDrop);
+        boardGrid.appendChild(sq);
+      }
+    }
+  }
+
+  let dragData = null;
+
+  // Touch-drag support — HTML5 DnD doesn't fire on most mobile browsers, so we
+  // simulate it with touch events and document.elementFromPoint for hit-testing.
+  function attachTouchDrag(el, isSidebar) {
+    if (el.dataset.touchAttached === '1') return;
+    el.dataset.touchAttached = '1';
+    let startX = 0, startY = 0, ghost = null, claimed = false;
+    const THRESHOLD_PX = 6;
+
+    function clearTargetHighlights() {
+      document.querySelectorAll('.board-square.drag-over, .piece-sidebar.drag-over')
+        .forEach(n => n.classList.remove('drag-over'));
+    }
+
+    function cleanup() {
+      if (ghost) { ghost.remove(); ghost = null; }
+      clearTargetHighlights();
+      if (!isSidebar) el.classList.remove('dragging');
+      claimed = false;
+    }
+
+    el.addEventListener('touchstart', function(e) {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      claimed = false;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function(e) {
+      if (e.touches.length !== 1) return;
+      const t  = e.touches[0];
+      const dx = t.clientX - startX, dy = t.clientY - startY;
+
+      if (!claimed) {
+        if (Math.hypot(dx, dy) < THRESHOLD_PX) return;
+        claimed = true;
+        e.preventDefault();
+        if (isSidebar) {
+          dragData = { piece: el.dataset.piece, fromSidebar: true };
+        } else {
+          dragData = {
+            piece:       el.dataset.piece,
+            fromRow:     parseInt(el.dataset.fromRow, 10),
+            fromCol:     parseInt(el.dataset.fromCol, 10),
+            fromSidebar: false
+          };
+          el.classList.add('dragging');
+        }
+        ghost = document.createElement('span');
+        ghost.className   = 'drag-ghost ' + (isSidebar
+          ? el.className.replace('sb-piece', '')
+          : el.className.replace('board-piece', ''));
+        ghost.textContent = el.textContent;
+        document.body.appendChild(ghost);
+      }
+
+      e.preventDefault();
+      if (ghost) {
+        ghost.style.left = t.clientX + 'px';
+        ghost.style.top  = t.clientY + 'px';
+      }
+      clearTargetHighlights();
+      const under = document.elementFromPoint(t.clientX, t.clientY);
+      if (!under) return;
+      const sq = under.closest('.board-square');
+      if (sq) { sq.classList.add('drag-over'); return; }
+      const sb = under.closest('.piece-sidebar');
+      if (sb && dragData && !dragData.fromSidebar) sb.classList.add('drag-over');
+    }, { passive: false });
+
+    el.addEventListener('touchend', function(e) {
+      if (!claimed || !dragData) { cleanup(); return; }
+      e.preventDefault();
+      const t = (e.changedTouches && e.changedTouches[0]);
+      const under = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
+
+      if (under) {
+        const sq = under.closest('.board-square');
+        if (sq) {
+          const toRow = parseInt(sq.dataset.row, 10);
+          const toCol = parseInt(sq.dataset.col, 10);
+          if (!dragData.fromSidebar) cbState[dragData.fromRow][dragData.fromCol] = null;
+          cbState[toRow][toCol] = dragData.piece;
+          dragData = null;
+          cleanup();
+          renderChessBoard();
+          scheduleBoardReanalyse();
+          return;
+        }
+        const sb = under.closest('.piece-sidebar');
+        if (sb && !dragData.fromSidebar) {
+          cbState[dragData.fromRow][dragData.fromCol] = null;
+          dragData = null;
+          cleanup();
+          renderChessBoard();
+          scheduleBoardReanalyse();
+          return;
+        }
+      }
+      dragData = null;
+      cleanup();
+    }, { passive: false });
+
+    el.addEventListener('touchcancel', function() {
+      dragData = null;
+      cleanup();
+    });
+  }
+
+  function onBoardPieceDragStart(e) {
+    dragData = {
+      piece:       e.currentTarget.dataset.piece,
+      fromRow:     parseInt(e.currentTarget.dataset.fromRow, 10),
+      fromCol:     parseInt(e.currentTarget.dataset.fromCol, 10),
+      fromSidebar: false
+    };
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.classList.add('dragging');
+  }
+  function onBoardPieceDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+  }
+
+  function onSquareDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = (dragData && dragData.fromSidebar) ? 'copy' : 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+  function onSquareDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+  function onSquareDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!dragData) return;
+    const toRow = parseInt(e.currentTarget.dataset.row, 10);
+    const toCol = parseInt(e.currentTarget.dataset.col, 10);
+    if (!dragData.fromSidebar) {
+      cbState[dragData.fromRow][dragData.fromCol] = null;
+    }
+    cbState[toRow][toCol] = dragData.piece;
+    dragData = null;
+    renderChessBoard();
+    scheduleBoardReanalyse();
+  }
+
+  function initSidebarDrag(sidebarEl) {
+    sidebarEl.querySelectorAll('.sb-piece').forEach(pe => {
+      pe.addEventListener('dragstart', e => {
+        dragData = { piece: e.currentTarget.dataset.piece, fromSidebar: true };
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+      attachTouchDrag(pe, true);
+    });
+
+    sidebarEl.addEventListener('dragover', e => {
+      if (dragData && !dragData.fromSidebar) {
+        e.preventDefault();
+        sidebarEl.classList.add('drag-over');
+      }
+    });
+    sidebarEl.addEventListener('dragleave', () => sidebarEl.classList.remove('drag-over'));
+    sidebarEl.addEventListener('drop', e => {
+      e.preventDefault();
+      sidebarEl.classList.remove('drag-over');
+      if (dragData && !dragData.fromSidebar) {
+        cbState[dragData.fromRow][dragData.fromCol] = null;
+        dragData = null;
+        renderChessBoard();
+        scheduleBoardReanalyse();
+      }
+    });
+  }
+
+  function scheduleBoardReanalyse() {
+    clearTimeout(cbReTimer);
+    lastEngScore = null;
+    refreshDerivedDisplays();
+    cbReTimer = setTimeout(() => startEngine(getBoardFen()), 1200);
+  }
+
+  function showBoard(fen) {
+    const parts = fen.split(' ');
+    cbState     = fenToState(parts[0]);
+    cbFenMeta   = parts.slice(1).join(' ') || 'w KQkq - 0 1';
+    cbFlipped   = false;
+    originalFen = fen;
+    boardBlock.style.display = '';
+    renderChessBoard();
+    initSidebarDrag(pieceSidebarL);
+    initSidebarDrag(pieceSidebarR);
+    updateStmButton();
+  }
+
+  function hideBoard() {
+    boardBlock.style.display = 'none';
+    clearTimeout(cbReTimer);
+  }
+
+  document.getElementById('flipBoardBtn').addEventListener('click', () => {
+    cbFlipped = !cbFlipped;
+    renderChessBoard();
+  });
+
+  document.getElementById('reanalyseBtn').addEventListener('click', () => {
+    refreshDerivedDisplays();
+    startEngine(getBoardFen());
+  });
+
+  document.getElementById('toggleStmBtn').addEventListener('click', () => {
+    const parts = cbFenMeta.split(' ');
+    parts[0] = parts[0] === 'w' ? 'b' : 'w';
+    if (parts.length >= 3) parts[2] = '-';   // en-passant invalid after toggle
+    cbFenMeta = parts.join(' ');
+    scheduleBoardReanalyse();
+  });
+
+  /* ── Analyse click ───────────────────────────────────── */
+  analyseBtn.addEventListener('click', async () => {
+    if (selectedFiles.length === 0) return;
+
+    // Per-file caps: 20 MB for video (sent raw), 25 MB for images pre-compression.
+    const PER_IMAGE_LIMIT = 25 * 1024 * 1024;
+    for (const file of selectedFiles) {
+      if (file.type.startsWith('video/') && file.size > MAX_INLINE_BYTES) {
+        renderError('Video too large', 'Please upload a clip under 20 MB, or extract a still frame instead.');
+        return;
+      }
+      if (file.type.startsWith('image/') && file.size > PER_IMAGE_LIMIT) {
+        renderError('Image too large', 'One of the images is over 25 MB. Try resizing it, or use a different photo.');
+        return;
+      }
+    }
+
+    analyseBtn.classList.add('loading');
+    hideResults();
+    startLoadingMessages();
+
+    let inputType;
+    if (selectedFiles.length === 1 && selectedFiles[0].type.startsWith('video/')) {
+      inputType = 'video';
+    } else if (selectedFiles.length === 1) {
+      inputType = 'single_image';
+    } else {
+      inputType = 'multi_image';
+    }
+
+    try {
+      const inlineDataParts = await Promise.all(
+        selectedFiles.map(async file => {
+          // Videos are sent as-is (size already validated). Images are compressed.
+          if (file.type.startsWith('video/')) {
+            return {
+              inlineData: {
+                mimeType: file.type || 'video/mp4',
+                data:     await fileToBase64(file)
+              }
+            };
+          }
+          const { mimeType, base64 } = await compressImage(file);
+          return { inlineData: { mimeType, data: base64 } };
+        })
+      );
+
+      const totalKB = inlineDataParts.reduce(
+        (sum, p) => sum + Math.round((p.inlineData.data.length * 3 / 4) / 1024), 0
+      );
+      console.log('[ChessSight] Outbound payload ≈', totalKB, 'KB');
+
+      const parts = [{ text: `input_type: ${inputType}` }, ...inlineDataParts];
+
+      const body = {
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+          thinkingConfig: { thinkingBudget: 4096, includeThoughts: false }
+        }
+      };
+
+      const response = await fetchWithRetry(GEMINI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        let errBody = {};
+        try { errBody = await response.json(); } catch (_) {}
+        console.error('[ChessSight] API error', response.status, errBody);
+
+        if (response.status === 429) {
+          const wait = errBody.retry_after_seconds
+            ? Math.ceil(errBody.retry_after_seconds / 60)
+            : 1;
+          renderError(
+            'Slow down a moment',
+            `You've hit the analysis limit. Please try again in ${wait} minute${wait === 1 ? '' : 's'}.`
+          );
+        } else if (response.status === 413) {
+          renderError('Upload too large', 'The file is too big. Try a smaller image, or a shorter video.');
+        } else if (response.status === 400) {
+          renderError('Image not accepted', 'The server rejected the upload. The file may be in an unsupported format. Try a JPEG or PNG.');
+        } else if (response.status === 502) {
+          renderError('Service unavailable', 'The analysis engine is temporarily unreachable. Please try again in a minute.');
+        } else if (response.status === 403) {
+          renderError('Request blocked', 'This request was blocked. If you are using ChessSight from an unusual environment, please reach out.');
+        } else {
+          renderError('Request failed', 'Something went wrong. Please try again.');
+        }
+        return;
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        renderError("Couldn't read response", 'The model returned an empty response. This can happen with safety filters or malformed input. Please try again.');
+        return;
+      }
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+
+      let result;
+      try {
+        result = JSON.parse(cleaned);
+      } catch (err) {
+        console.error('[ChessSight]', err);
+        renderError("Couldn't read response", 'The model returned an unexpected format. Please try again.');
+        return;
+      }
+
+      if (result.error === 'no_board_detected') {
+        renderError('No board detected', result.feedback || 'No chess board could be detected in the uploaded media. Please ensure the board is well-lit, fully visible, and the camera is aimed directly at the position.');
+        return;
+      }
+
+      // Two-pass verification — best-effort, silently falls back on failure.
+      // Skipped for video: the engine analyses one frame, but moves_san already
+      // gives us cross-frame validation.
+      if (result.piece_placement && inputType !== 'video') {
+        spinLabel.textContent = 'Verifying position…';
+        try {
+          const verified = await verifyPosition(result.piece_placement, inlineDataParts, inputType);
+          if (verified && verified.piece_placement && verified.piece_placement !== result.piece_placement) {
+            console.log('[ChessSight] verifier corrected', verified.corrections);
+            result.piece_placement = verified.piece_placement;
+            const merged = (result.low_confidence_squares || []).slice();
+            (verified.corrections || []).forEach(c => {
+              if (c && c.square && !merged.includes(c.square)) merged.push(c.square);
+            });
+            result.low_confidence_squares = merged;
+            if (verified.confidence) result.confidence = verified.confidence;
+          }
+        } catch (err) {
+          console.warn('[ChessSight] verifier failed, using first pass:', err);
+        }
+      }
+
+      let fen, pgn;
+      try {
+        fen = buildFEN(result);
+        pgn = buildPGN(fen, result.moves_san);
+      } catch (err) {
+        console.error('[ChessSight]', err);
+        renderError(
+          "Couldn't read the position",
+          "The board recognition was incomplete. Please retake the photo with the full board visible and try again."
+        );
+        return;
+      }
+
+      try {
+        renderResults(result, fen, pgn);
+      } catch (err) {
+        console.error('renderResults failed:', err);
+        renderError("Couldn't read response", 'The analysis came back in an unexpected shape. Please try again.');
+      }
+
+    } catch (err) {
+      console.error('[ChessSight]', err);
+      renderError('Connection failed', 'Could not reach the analysis engine. Check your connection and retry.');
+    } finally {
+      stopLoadingMessages();
+      analyseBtn.classList.remove('loading');
+    }
+  });
+
+  /* ── Show / hide results ─────────────────────────────── */
+  function showResults() {
+    checkerDivider.style.display = '';
+    resultsPanel.classList.add('visible');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resultsPanel.classList.add('revealed'));
+    });
+    resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function hideResults() {
+    stopEngine();
+    hideBoard();
+    resultsPanel.classList.remove('visible', 'revealed');
+    checkerDivider.style.display = 'none';
+  }
+
+  /* ── Keyboard accessibility for zone ─────────────────── */
+  zone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+
+  /* ── Opening detection (Lichess masters explorer) ────── */
+  async function fetchOpeningName(fen) {
+    try {
+      const url = 'https://explorer.lichess.ovh/masters?fen=' +
+                  encodeURIComponent(fen) + '&moves=0';
+      const res = await fetch(url, { method: 'GET' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data && data.opening && data.opening.name) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setOpeningBadge(name) {
+    if (!openingBadge || !openingName) return;
+    if (name) {
+      openingName.textContent = name;
+      openingBadge.classList.add('visible');
+    } else {
+      openingName.textContent = '';
+      openingBadge.classList.remove('visible');
+    }
+  }
+
+  /* ── Quick-action buttons ────────────────────────────── */
+  function updateQuickActions(fen) {
+    if (!fen || !lichessLink || !chesscomLink) return;
+    const enc = encodeURIComponent(fen);
+    lichessLink.href  = 'https://lichess.org/analysis/' + enc;
+    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + enc;
+  }
+
+  /* ── Share-via-URL ───────────────────────────────────── */
+  function updateShareUrl(fen) {
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set('fen', fen);
+      window.history.replaceState({}, '', u.toString());
+    } catch (_) { /* no-op */ }
+  }
+
+  function clearShareUrl() {
+    try {
+      const u = new URL(window.location.href);
+      if (u.searchParams.has('fen')) {
+        u.searchParams.delete('fen');
+        window.history.replaceState({}, '', u.pathname + (u.search ? u.search : '') + u.hash);
+      }
+    } catch (_) { /* no-op */ }
+  }
+
+  function isValidFen(fen) {
+    if (typeof fen !== 'string') return false;
+    const parts = fen.trim().split(/\s+/);
+    if (parts.length < 1) return false;
+    return /^([rnbqkpRNBQKP1-8]+\/){7}[rnbqkpRNBQKP1-8]+$/.test(parts[0]);
+  }
+
+  function loadFromShareUrl() {
+    let sharedFen = null;
+    try {
+      sharedFen = new URLSearchParams(window.location.search).get('fen');
+    } catch (_) { return; }
+    if (!sharedFen || !isValidFen(sharedFen)) return;
+
+    // Normalise to a 6-field FEN for the engine.
+    const parts = sharedFen.trim().split(/\s+/);
+    while (parts.length < 6) {
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+    }
+    const fullFen = parts.join(' ');
+
+    lowConfidenceSquares = [];
+    aiVerdict      = 'equal';
+    aiFeedbackHtml = 'Shared position. Adjust pieces if needed, or run a fresh scan.';
+    setEvaluationFromAi(aiVerdict);
+    complexityPill.textContent = 'Quiet';
+    complexityPill.className   = 'complexity-pill quiet';
+    confidenceBar.style.display = 'none';
+
+    fenCard.onclick   = () => triggerDownload(fullFen, 'chessight-position.fen', 'text/plain');
+    fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    const pgn = buildPGN(fullFen, null);
+    pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+    pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+
+    showResults();
+    showBoard(fullFen);
+    refreshDerivedDisplays();
+    updateQuickActions(fullFen);
+    startEngine(fullFen);
+
+    fetchOpeningName(fullFen).then(setOpeningBadge);
+  }
+
+  /* ── Analysis history (localStorage) ─────────────────── */
+  const HISTORY_KEY = 'chesssight_history';
+  const HISTORY_MAX = 8;
+  const historyBlock  = document.getElementById('historyBlock');
+  const historyToggle = document.getElementById('historyToggle');
+  const historyList   = document.getElementById('historyList');
+  const historyCount  = document.getElementById('historyCount');
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+  function saveHistory(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+    catch (_) { /* quota exceeded — ignore */ }
+  }
+
+  async function makeThumbnail(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) return null;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload  = () => res(i);
+        i.onerror = () => rej(new Error('decode_failed'));
+        i.src = url;
+      });
+      const max = 80;
+      const w0 = img.naturalWidth, h0 = img.naturalHeight;
+      if (!w0 || !h0) return null;
+      const scale = Math.min(1, max / Math.max(w0, h0));
+      const w = Math.max(1, Math.round(w0 * scale));
+      const h = Math.max(1, Math.round(h0 * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      return canvas.toDataURL('image/jpeg', 0.7);
+    } catch (_) {
+      return null;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function pushHistoryEntry({ fen, opening, file }) {
+    const thumb = await makeThumbnail(file);
+    const entry = {
+      thumb:   thumb || null,
+      fen:     fen,
+      opening: opening || null,
+      ts:      Date.now()
+    };
+    const arr = loadHistory();
+    // Drop duplicate FENs (keep newest)
+    const filtered = arr.filter(e => e && e.fen !== fen);
+    filtered.unshift(entry);
+    while (filtered.length > HISTORY_MAX) filtered.pop();
+    saveHistory(filtered);
+    renderHistory();
+  }
+
+  function formatRelTime(ts) {
+    const diff = Math.max(0, Date.now() - ts);
+    const min  = Math.floor(diff / 60000);
+    if (min < 1)   return 'Just now';
+    if (min < 60)  return min + ' min ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24)   return hr + ' hr ago';
+    const day = Math.floor(hr / 24);
+    if (day < 7)   return day + ' d ago';
+    return new Date(ts).toLocaleDateString();
+  }
+
+  function renderHistory() {
+    if (!historyList || !historyCount) return;
+    const arr = loadHistory();
+    historyCount.textContent = String(arr.length);
+    historyList.innerHTML = '';
+
+    if (!arr.length) {
+      const empty = document.createElement('p');
+      empty.className   = 'history-empty';
+      empty.textContent = 'No analyses yet — your last 8 scans will appear here.';
+      historyList.appendChild(empty);
+      return;
+    }
+
+    arr.forEach((entry, idx) => {
+      const item = document.createElement('button');
+      item.type      = 'button';
+      item.className = 'history-item';
+      item.setAttribute('role', 'listitem');
+      item.setAttribute('aria-label',
+        'Restore position ' + (entry.opening || 'from ' + formatRelTime(entry.ts)));
+
+      if (entry.thumb) {
+        const img = document.createElement('img');
+        img.className = 'history-thumb';
+        img.src       = entry.thumb;
+        img.alt       = 'Thumbnail';
+        item.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className   = 'history-thumb placeholder';
+        ph.textContent = '♟';
+        item.appendChild(ph);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'history-meta';
+
+      const op = document.createElement('span');
+      if (entry.opening) {
+        op.className   = 'history-opening';
+        op.textContent = entry.opening;
+      } else {
+        op.className   = 'history-opening untitled';
+        op.textContent = 'Position';
+      }
+      meta.appendChild(op);
+
+      const fenLine = document.createElement('span');
+      fenLine.className   = 'history-fen';
+      fenLine.textContent = (entry.fen || '').split(' ')[0];
+      meta.appendChild(fenLine);
+
+      const t = document.createElement('span');
+      t.className   = 'history-time';
+      t.textContent = formatRelTime(entry.ts);
+      meta.appendChild(t);
+
+      item.appendChild(meta);
+      item.addEventListener('click', () => restoreFromHistory(entry));
+      historyList.appendChild(item);
+    });
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type        = 'button';
+    clearBtn.className   = 'history-clear';
+    clearBtn.textContent = 'Clear history';
+    clearBtn.addEventListener('click', () => {
+      saveHistory([]);
+      renderHistory();
+    });
+    historyList.appendChild(clearBtn);
+  }
+
+  function restoreFromHistory(entry) {
+    if (!entry || !isValidFen(entry.fen)) return;
+
+    // Fill in any missing FEN fields.
+    const parts = entry.fen.trim().split(/\s+/);
+    while (parts.length < 6) {
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+    }
+    const fullFen = parts.join(' ');
+
+    lowConfidenceSquares = [];
+    aiVerdict      = 'equal';
+    aiFeedbackHtml = 'Restored from history. Adjust pieces if needed.';
+    setEvaluationFromAi(aiVerdict);
+    complexityPill.textContent = 'Quiet';
+    complexityPill.className   = 'complexity-pill quiet';
+    confidenceBar.style.display = 'none';
+    setOpeningBadge(entry.opening || null);
+
+    fenCard.onclick   = () => triggerDownload(fullFen, 'chessight-position.fen', 'text/plain');
+    fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    const pgn = buildPGN(fullFen, null);
+    pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+    pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+
+    showResults();
+    showBoard(fullFen);
+    refreshDerivedDisplays();
+    updateQuickActions(fullFen);
+    updateShareUrl(fullFen);
+    startEngine(fullFen);
+  }
+
+  if (historyToggle && historyBlock) {
+    historyToggle.addEventListener('click', () => {
+      const open = historyBlock.classList.toggle('open');
+      historyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+  renderHistory();
+
+  /* ── Init from share URL ─────────────────────────────── */
+  loadFromShareUrl();
+})();
+</script>
+</body>
+</html>
