@@ -859,6 +859,27 @@ body::before {
   .engine-block { padding: 1.1rem 1.1rem 1.4rem; }
 }
 
+/* ─── Expandable PV lines ─────────────────────────────────── */
+.engine-pvline.expandable { cursor: pointer; }
+.engine-pvline.expandable:hover { background: rgba(201,168,76,0.06); }
+.engine-pvline.expandable .pv-moves::after {
+  content: ' ▾';
+  color: rgba(201,168,76,0.35);
+  font-size: 0.6rem;
+  vertical-align: middle;
+}
+.engine-pvline.expandable.expanded .pv-moves::after { content: ' ▴'; }
+.engine-pvline.expandable.expanded .pv-moves {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+/* ─── Feedback refreshing state ────────────────────────────── */
+.feedback-text.ai-refreshing { opacity: 0.45; font-style: italic; }
+
 /* ─── Chess board block ────────────────────────────────────── */
 .board-block { margin-top: 1.75rem; }
 .board-header {
@@ -2052,6 +2073,15 @@ IMPORTANT:
 - Each side has at most one king. Pawns never on rank 1 or rank 8. Total pieces 32 max.
 - Never wrap output in markdown. Never add commentary outside the JSON.`;
 
+  const FEN_ANALYSIS_INSTRUCTION = `You are ChessSight.ai, an expert chess analyst. You receive a single FEN string representing a chess position that a user has manually edited. Analyse it and return a JSON object.
+
+Return exactly this shape — no prose, no markdown fences, JSON only:
+{
+  "evaluation": "white" | "black" | "equal",
+  "complexity": "Quiet" | "Complex" | "Critical",
+  "feedback": "<80 to 160 words. Wrap chess terms and square names in [[double brackets]] like [[Ruy Lopez]], [[bishop on b5]], [[d5 pawn]], [[kingside]]. Neutral perspective. Do not address the user as 'you'. Describe the position, key imbalances, and the main strategic themes.>"
+}`;
+
   async function verifyPosition(firstPassPlacement, inlineDataParts, inputType) {
     const verifyParts = [
       { text: `input_type: ${inputType}\ncandidate_piece_placement: ${firstPassPlacement}` },
@@ -2269,6 +2299,16 @@ IMPORTANT:
     document.getElementById('enginePv3')
   ];
 
+  pvLineEls.forEach((li, idx) => {
+    li.addEventListener('click', () => {
+      if (!li.classList.contains('expandable')) return;
+      const expanded = li.classList.toggle('expanded');
+      pvMovesEls[idx].textContent = expanded
+        ? (pvMovesEls[idx].dataset.full  || '')
+        : (pvMovesEls[idx].dataset.short || '');
+    });
+  });
+
   function parseInfoLine(line) {
     if (!line.startsWith('info '))     return null;
     if (line.indexOf(' pv ')  === -1)  return null;
@@ -2347,6 +2387,17 @@ IMPORTANT:
     engineEvalLabelB.textContent = whitePct < 45 ? (scoreMate !== null && sign * scoreMate < 0 ? '#' : '+' + Math.abs(cp / 100).toFixed(1)) : '';
   }
 
+  function buildMoveStr(sanMoves, isWhite, startMoveNum) {
+    let str = '', mn = startMoveNum;
+    for (let i = 0; i < sanMoves.length; i++) {
+      if (i === 0 && isWhite)  str = mn + '. ' + sanMoves[i];
+      else if (i === 0)        str = mn + '… ' + sanMoves[i];
+      else if ((isWhite && i % 2 === 0) || (!isWhite && i % 2 === 1)) { mn++; str += '  ' + mn + '. ' + sanMoves[i]; }
+      else str += ' ' + sanMoves[i];
+    }
+    return str;
+  }
+
   function updateEngineUI(parsed, fen) {
     const stm    = (fen.split(' ')[1] || 'w');
     const pvIdx  = parsed.multipv - 1;
@@ -2360,24 +2411,17 @@ IMPORTANT:
 
     const MAX_HALF = 8;
     const isWhite  = stm === 'w';
-    const shown    = sanMoves.slice(0, MAX_HALF);
-    let moveStr    = '';
-    let moveNum    = parseInt(fen.split(' ')[5] || '1', 10);
+    const moveNum  = parseInt(fen.split(' ')[5] || '1', 10);
+    const shortStr = buildMoveStr(sanMoves.slice(0, MAX_HALF), isWhite, moveNum) + (sanMoves.length > MAX_HALF ? ' …' : '');
+    const fullStr  = buildMoveStr(sanMoves, isWhite, moveNum);
 
-    for (let i = 0; i < shown.length; i++) {
-      if (i === 0 && isWhite)  { moveStr = moveNum + '. ' + shown[i]; }
-      else if (i === 0)        { moveStr = moveNum + '… ' + shown[i]; }
-      else if ((isWhite && i % 2 === 0) || (!isWhite && i % 2 === 1)) {
-        moveNum++;
-        moveStr += '  ' + moveNum + '. ' + shown[i];
-      } else {
-        moveStr += ' ' + shown[i];
-      }
-    }
-    if (sanMoves.length > MAX_HALF) moveStr += ' …';
-    pvMovesEls[pvIdx].textContent = moveStr;
+    const movEl = pvMovesEls[pvIdx];
+    movEl.dataset.short = shortStr;
+    movEl.dataset.full  = fullStr;
+    movEl.textContent   = pvLineEls[pvIdx].classList.contains('expanded') ? fullStr : shortStr;
 
     pvLineEls[pvIdx].classList.remove('loading');
+    pvLineEls[pvIdx].classList.add('expandable');
 
     if (parsed.multipv === 1) {
       engineDepthEl.textContent = 'depth ' + parsed.depth;
@@ -2398,7 +2442,8 @@ IMPORTANT:
     engineEvalLabelB.textContent = '';
     pvLineEls.forEach(li => li.classList.add('loading'));
     pvScoreEls.forEach(el => { el.textContent = ''; el.className = 'pv-score'; });
-    pvMovesEls.forEach(el => { el.textContent = ''; });
+    pvMovesEls.forEach(el => { el.textContent = ''; el.dataset.short = ''; el.dataset.full = ''; });
+    pvLineEls.forEach(li => li.classList.remove('expandable', 'expanded'));
     lastEngScore = null;
   }
 
@@ -2819,11 +2864,48 @@ IMPORTANT:
     });
   }
 
+  let geminiReTimer = null;
+
+  async function runGeminiReanalysis(fen) {
+    feedbackText.classList.add('ai-refreshing');
+    try {
+      const body = {
+        systemInstruction: { parts: [{ text: FEN_ANALYSIS_INSTRUCTION }] },
+        contents: [{ role: 'user', parts: [{ text: 'fen: ' + fen }] }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2, maxOutputTokens: 512 }
+      };
+      const res = await fetchWithRetry(GEMINI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) return;
+      const data    = await res.json();
+      const raw     = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!raw) return;
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      const result  = JSON.parse(cleaned);
+      if (!result || !result.feedback) return;
+      aiFeedbackHtml = highlightTerms(result.feedback);
+      aiVerdict      = result.evaluation || 'equal';
+      const complexity = (result.complexity || 'Quiet').toString();
+      complexityPill.textContent = complexity;
+      complexityPill.className   = 'complexity-pill ' + complexity.toLowerCase();
+      refreshDerivedDisplays();
+    } catch (_) {
+      // silently keep existing feedback on failure
+    } finally {
+      feedbackText.classList.remove('ai-refreshing');
+    }
+  }
+
   function scheduleBoardReanalyse() {
     clearTimeout(cbReTimer);
+    clearTimeout(geminiReTimer);
     lastEngScore = null;
     refreshDerivedDisplays();
-    cbReTimer = setTimeout(() => startEngine(getBoardFen()), 1200);
+    cbReTimer     = setTimeout(() => startEngine(getBoardFen()), 1200);
+    geminiReTimer = setTimeout(() => runGeminiReanalysis(getBoardFen()), 1800);
   }
 
   function showBoard(fen) {
