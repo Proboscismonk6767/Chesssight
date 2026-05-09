@@ -2942,9 +2942,25 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     clearTimeout(cbReTimer);
     clearTimeout(geminiReTimer);
     lastEngScore = null;
+
+    const fen = getBoardFen();
+
+    // Immediately sync FEN/PGN downloads and external links to current position
+    if (fenCard) {
+      fenCard.onclick   = () => triggerDownload(fen, 'chessight-position.fen', 'text/plain');
+      fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    }
+    if (pgnCard) {
+      const pgn = buildPGN(fen, null);
+      pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+      pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+    }
+    updateQuickActions(fen);
+    updateShareUrl(fen);
+
     refreshDerivedDisplays();
-    cbReTimer     = setTimeout(() => startEngine(getBoardFen()), 1200);
-    geminiReTimer = setTimeout(() => runGeminiReanalysis(getBoardFen()), 1800);
+    cbReTimer     = setTimeout(() => startEngine(fen), 1200);
+    geminiReTimer = setTimeout(() => runGeminiReanalysis(fen), 1800);
   }
 
   function showBoard(fen) {
