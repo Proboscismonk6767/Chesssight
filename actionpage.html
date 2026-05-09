@@ -125,35 +125,6 @@ body::before {
   line-height: 1;
 }
 
-/* ─── Background floating pieces ──────────────────────────── */
-.bg-pieces {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.bg-piece {
-  position: absolute;
-  bottom: -10%;
-  font-size: clamp(2.5rem, 5vw, 5rem);
-  color: rgba(201,168,76,0.055);
-  animation: floatUp linear infinite;
-  user-select: none;
-}
-@keyframes floatUp {
-  0%   { transform: translateY(0)   rotate(0deg);   opacity: 0; }
-  5%   { opacity: 1; }
-  95%  { opacity: 1; }
-  100% { transform: translateY(-110vh) rotate(25deg); opacity: 0; }
-}
-.bg-piece:nth-child(1) { left:5%;  animation-duration:31s; animation-delay:-7s;  font-size:3rem; }
-.bg-piece:nth-child(2) { left:18%; animation-duration:26s; animation-delay:-14s; font-size:4.5rem; }
-.bg-piece:nth-child(3) { left:34%; animation-duration:37s; animation-delay:-3s;  font-size:2.5rem; }
-.bg-piece:nth-child(4) { left:52%; animation-duration:29s; animation-delay:-20s; font-size:5rem; }
-.bg-piece:nth-child(5) { left:68%; animation-duration:33s; animation-delay:-10s; font-size:3.5rem; }
-.bg-piece:nth-child(6) { left:82%; animation-duration:24s; animation-delay:-18s; font-size:4rem; }
-.bg-piece:nth-child(7) { left:91%; animation-duration:28s; animation-delay:-5s;  font-size:2.8rem; }
 
 /* ─── Page wrapper ─────────────────────────────────────────── */
 .page {
@@ -1427,16 +1398,6 @@ body::before {
 </head>
 <body>
 
-<!-- Floating background pieces -->
-<div class="bg-pieces" aria-hidden="true">
-  <span class="bg-piece">♜</span>
-  <span class="bg-piece">♝</span>
-  <span class="bg-piece">♛</span>
-  <span class="bg-piece">♞</span>
-  <span class="bg-piece">♟</span>
-  <span class="bg-piece">♜</span>
-  <span class="bg-piece">♛</span>
-</div>
 
 <!-- Nav -->
 <nav id="nav" role="navigation" aria-label="Site navigation">
