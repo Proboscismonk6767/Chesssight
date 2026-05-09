@@ -867,7 +867,26 @@ body::before {
   color: var(--gold);
   margin: 0;
 }
-.board-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.board-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.board-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.32rem 0.75rem;
+  border: 1px solid rgba(201,168,76,0.18);
+  border-radius: 999px;
+  background: rgba(13,13,13,0.35);
+  color: rgba(245,240,232,0.48);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.board-status-pill.edited {
+  color: var(--gold);
+  border-color: rgba(201,168,76,0.36);
+  background: rgba(201,168,76,0.08);
+}
 .edited-tag {
   display: inline-block;
   font-size: 0.58rem;
@@ -903,6 +922,60 @@ body::before {
 }
 .board-ctrl-btn--primary { color: var(--gold); border-color: rgba(201,168,76,0.4); }
 .board-ctrl-btn--primary:hover { background: rgba(201,168,76,0.12); border-color: var(--gold); }
+.board-ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.board-tools {
+  margin: 1rem 0 0;
+  padding: 0.9rem;
+  border: 1px solid rgba(201,168,76,0.14);
+  border-radius: 10px;
+  background: rgba(13,13,13,0.22);
+}
+.fen-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+.fen-input {
+  min-height: 2.45rem;
+  resize: vertical;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.24);
+  color: var(--cream);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.fen-input:focus {
+  outline: none;
+  border-color: rgba(201,168,76,0.55);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+}
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.validation-card {
+  display: none;
+  margin-top: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(223,192,106,0.25);
+  border-radius: 8px;
+  background: rgba(201,168,76,0.08);
+  color: rgba(245,240,232,0.72);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.validation-card.visible { display: block; }
+.validation-card.valid {
+  border-color: rgba(93,145,96,0.35);
+  background: rgba(93,145,96,0.12);
+}
 
 .board-layout {
   display: grid;
@@ -1013,6 +1086,16 @@ body::before {
 .sq-dark  { background: #4a7050; }
 .board-square.drag-over.sq-light { background: #e8ce96; }
 .board-square.drag-over.sq-dark  { background: #6a9070; }
+.board-square.tap-selected::before {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  border: 2px solid rgba(245,240,232,0.9);
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.35);
+  pointer-events: none;
+  z-index: 2;
+}
 
 /* Coordinate labels */
 .sq-rank-label, .sq-file-label {
@@ -1089,6 +1172,8 @@ body::before {
   .board-container      { order: 2; }
   .piece-sidebar--right { order: 3; min-height: unset; flex-direction: row; padding: 0.4rem; justify-content: center; }
   .piece-col { flex-direction: row; }
+  .fen-row { grid-template-columns: 1fr; }
+  .board-status-pill { width: 100%; justify-content: center; }
 }
 
 /* ─── Opening badge ────────────────────────────────────────── */
@@ -1458,6 +1543,9 @@ body::before {
         <span class="spin-label">Reading the board…</span>
       </span>
     </button>
+    <div class="tool-actions" style="justify-content:center;margin-top:0.85rem;">
+      <button class="board-ctrl-btn" id="sampleBoardBtn" type="button">Try sample board</button>
+    </div>
 
     <!-- Checker divider (shown with results) -->
     <div class="chess-checker-divider" id="checkerDivider" style="display:none" aria-hidden="true"></div>
@@ -1529,8 +1617,12 @@ body::before {
         <div class="board-header">
           <p class="board-eyebrow">Board Position</p>
           <div class="board-controls">
+            <span class="board-status-pill" id="boardStatusPill">Original scan</span>
             <button class="board-ctrl-btn" id="toggleStmBtn" type="button" aria-label="Toggle side to move"><span id="toggleStmLabel">⇄ White to move</span></button>
             <button class="board-ctrl-btn" id="flipBoardBtn" type="button" aria-label="Flip board">⟳ Flip</button>
+            <button class="board-ctrl-btn" id="undoBoardBtn" type="button" disabled>Undo</button>
+            <button class="board-ctrl-btn" id="clearBoardBtn" type="button">Clear</button>
+            <button class="board-ctrl-btn" id="startBoardBtn" type="button">Start</button>
             <button class="board-ctrl-btn board-ctrl-btn--primary" id="reanalyseBtn" type="button">Re-analyse</button>
           </div>
         </div>
@@ -1574,6 +1666,22 @@ body::before {
 
         <p class="board-hint">Drag pieces to adjust · Drop onto a sidebar to remove</p>
 
+        <div class="board-tools" id="boardTools">
+          <div class="fen-row">
+            <textarea class="fen-input" id="fenInput" rows="2" spellcheck="false" aria-label="FEN position"></textarea>
+            <button class="board-ctrl-btn board-ctrl-btn--primary" id="loadFenBtn" type="button">Load FEN</button>
+          </div>
+          <div class="tool-actions">
+            <button class="board-ctrl-btn" id="copyFenBtn" type="button">Copy FEN</button>
+            <button class="board-ctrl-btn" id="copyPgnBtn" type="button">Copy PGN</button>
+            <button class="board-ctrl-btn" id="demoBoardBtn" type="button">Sample</button>
+            <a class="board-ctrl-btn" id="positionFeedbackBtn" href="mailto:chesssight@gmail.com" style="text-decoration:none;">Report scan</a>
+          </div>
+          <div class="validation-card" id="validationCard" role="status">
+            <span id="validationText"></span>
+          </div>
+        </div>
+
         <p class="board-legend" id="boardLegend">
           <span class="legend-icon" aria-hidden="true">⚠</span>
           Uncertain square — verify before use.
@@ -1586,6 +1694,12 @@ body::before {
           <a class="quick-action" id="chesscomLink" target="_blank" rel="noopener noreferrer" href="#">
             <span class="qa-icon" aria-hidden="true">♛</span> Open in Chess.com
           </a>
+          <button class="quick-action" id="copyLichessBtn" type="button">
+            <span class="qa-icon" aria-hidden="true">↗</span> Copy Lichess
+          </button>
+          <button class="quick-action" id="copyChesscomBtn" type="button">
+            <span class="qa-icon" aria-hidden="true">↗</span> Copy Chess.com
+          </button>
         </div>
 
       </div><!-- /#boardBlock -->
@@ -1951,6 +2065,21 @@ HARD RULES — NEVER VIOLATE THESE
   const boardLegend    = document.getElementById('boardLegend');
   const lichessLink    = document.getElementById('lichessLink');
   const chesscomLink   = document.getElementById('chesscomLink');
+  const boardStatusPill = document.getElementById('boardStatusPill');
+  const fenInput       = document.getElementById('fenInput');
+  const loadFenBtn     = document.getElementById('loadFenBtn');
+  const copyFenBtn     = document.getElementById('copyFenBtn');
+  const copyPgnBtn     = document.getElementById('copyPgnBtn');
+  const copyLichessBtn = document.getElementById('copyLichessBtn');
+  const copyChesscomBtn = document.getElementById('copyChesscomBtn');
+  const clearBoardBtn  = document.getElementById('clearBoardBtn');
+  const startBoardBtn  = document.getElementById('startBoardBtn');
+  const undoBoardBtn   = document.getElementById('undoBoardBtn');
+  const demoBoardBtn   = document.getElementById('demoBoardBtn');
+  const sampleBoardBtn = document.getElementById('sampleBoardBtn');
+  const positionFeedbackBtn = document.getElementById('positionFeedbackBtn');
+  const validationCard = document.getElementById('validationCard');
+  const validationText = document.getElementById('validationText');
   const fenCard        = downloadRow.children[0];
   const pgnCard        = downloadRow.children[1];
 
@@ -2250,6 +2379,46 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     parts[4] = /^\d+$/.test(parts[4] || '') ? parts[4] : '0';
     parts[5] = /^[1-9]\d*$/.test(parts[5] || '') ? parts[5] : '1';
     return parts.slice(0, 6).join(' ');
+  }
+
+  function isLoadableFen(fen) {
+    const parts = (fen || '').trim().split(/\s+/);
+    if (!parts[0] || !/^([rnbqkpRNBQKP1-8]+\/){7}[rnbqkpRNBQKP1-8]+$/.test(parts[0])) return false;
+    return parts[0].split('/').every(row => {
+      let count = 0;
+      for (const ch of row) count += /\d/.test(ch) ? parseInt(ch, 10) : 1;
+      return count === 8;
+    });
+  }
+
+  function copyText(text, button) {
+    const value = text || '';
+    const finish = ok => {
+      if (!button) return;
+      const old = button.textContent;
+      button.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(() => { button.textContent = old; }, 1200);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(() => finish(true)).catch(() => finish(false));
+      return;
+    }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      finish(ok);
+    } catch (_) {
+      finish(false);
+    }
   }
 
   /* ── Error renderer ──────────────────────────────────── */
@@ -2601,6 +2770,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   let aiFeedbackHtml = '';
   let aiVerdict      = null;
   let lastEngScore   = null;  // {scoreCp, scoreMate, stm}
+  let boardUndoStack = [];
+  let tapSelection   = null;
+
+  const START_FEN  = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const SAMPLE_FEN = 'r2q1rk1/pp2bppp/2n1pn2/2bp4/3P4/2NBPN2/PPQ2PPP/R1B2RK1 w - - 0 1';
 
   function setEvaluationFromAi(verdict) {
     if (verdict === 'white')      evaluationLine.innerHTML = "Advantage <span class='eval-side white'>White</span>";
@@ -2681,6 +2855,95 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     return normalizeFen(stateToFenPlacement(cbState) + ' ' + cbFenMeta, true);
   }
 
+  function updateUndoButton() {
+    if (undoBoardBtn) undoBoardBtn.disabled = boardUndoStack.length === 0;
+  }
+
+  function recordBoardUndo() {
+    boardUndoStack.push(getBoardFen());
+    if (boardUndoStack.length > 30) boardUndoStack.shift();
+    updateUndoButton();
+  }
+
+  function validateCurrentBoard() {
+    const flat = cbState.flat();
+    const issues = [];
+    const whiteKings = flat.filter(p => p === 'K').length;
+    const blackKings = flat.filter(p => p === 'k').length;
+    const whitePawns = flat.filter(p => p === 'P').length;
+    const blackPawns = flat.filter(p => p === 'p').length;
+    const pieceCount = flat.filter(Boolean).length;
+
+    if (whiteKings !== 1) issues.push('White must have exactly one king.');
+    if (blackKings !== 1) issues.push('Black must have exactly one king.');
+    if (whitePawns > 8) issues.push('White has more than eight pawns.');
+    if (blackPawns > 8) issues.push('Black has more than eight pawns.');
+    if (pieceCount > 32) issues.push('The board has more than 32 pieces.');
+    for (let c = 0; c < 8; c++) {
+      if (cbState[0][c] === 'P' || cbState[7][c] === 'P' || cbState[0][c] === 'p' || cbState[7][c] === 'p') {
+        issues.push('Pawns cannot sit on the first or eighth rank.');
+        break;
+      }
+    }
+
+    return issues;
+  }
+
+  function renderBoardValidation() {
+    if (!validationCard || !validationText) return;
+    const issues = validateCurrentBoard();
+    validationCard.classList.add('visible');
+    validationCard.classList.toggle('valid', issues.length === 0);
+    validationText.textContent = issues.length
+      ? issues.join(' ')
+      : 'Position looks structurally valid.';
+  }
+
+  function setBoardStatus(fen) {
+    if (!boardStatusPill) return;
+    const edited = originalFen && normalizeFen(fen) !== normalizeFen(originalFen);
+    boardStatusPill.textContent = edited ? 'User edited' : 'Original scan';
+    boardStatusPill.classList.toggle('edited', !!edited);
+  }
+
+  function syncBoardOutputs(fen, options = {}) {
+    fen = normalizeFen(fen);
+    const pgn = buildPGN(fen, null);
+
+    if (fenInput) fenInput.value = fen;
+    if (options.downloads !== false && fenCard) {
+      fenCard.onclick   = () => triggerDownload(fen, 'chessight-position.fen', 'text/plain');
+      fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    }
+    if (options.downloads !== false && pgnCard) {
+      pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+      pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+    }
+    updateQuickActions(fen);
+    updateShareUrl(fen);
+    setBoardStatus(fen);
+    renderBoardValidation();
+
+    if (positionFeedbackBtn) {
+      positionFeedbackBtn.href =
+        'mailto:chesssight@gmail.com?subject=' + encodeURIComponent('ChessSight scan feedback') +
+        '&body=' + encodeURIComponent('FEN:\n' + fen + '\n\nWhat looked wrong?\n');
+    }
+  }
+
+  function loadBoardFen(fen, options = {}) {
+    const fullFen = normalizeFen(fen, options.clearRights);
+    const parts = fullFen.split(/\s+/);
+    if (options.recordUndo) recordBoardUndo();
+    cbState = fenToState(parts[0]);
+    cbFenMeta = parts.slice(1).join(' ');
+    tapSelection = null;
+    renderChessBoard();
+    updateStmButton();
+    syncBoardOutputs(fullFen);
+    if (options.reanalyse !== false) scheduleBoardReanalyse();
+  }
+
   function squareNameToRC(sq) {
     if (typeof sq !== 'string' || sq.length !== 2) return null;
     const file = sq.charCodeAt(0) - 97;       // a → 0
@@ -2691,6 +2954,36 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   function rcToSquareName(r, c) {
     return String.fromCharCode(97 + c) + (8 - r);
+  }
+
+  function commitBoardChange(next) {
+    recordBoardUndo();
+    next();
+    tapSelection = null;
+    renderChessBoard();
+    scheduleBoardReanalyse();
+  }
+
+  function handleBoardSquareTap(row, col) {
+    const piece = cbState[row][col];
+
+    if (tapSelection) {
+      commitBoardChange(() => {
+        if (!tapSelection.fromSidebar) cbState[tapSelection.row][tapSelection.col] = null;
+        cbState[row][col] = tapSelection.piece;
+      });
+      return;
+    }
+
+    if (piece) {
+      tapSelection = { piece, row, col, fromSidebar: false };
+      renderChessBoard();
+    }
+  }
+
+  function handleSidebarPieceTap(piece) {
+    tapSelection = { piece, fromSidebar: true };
+    renderChessBoard();
   }
 
   function renderChessBoard() {
@@ -2710,6 +3003,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         const isLight = (r + c) % 2 === 0;
         const sq      = document.createElement('div');
         sq.className   = 'board-square ' + (isLight ? 'sq-light' : 'sq-dark');
+        if (tapSelection && !tapSelection.fromSidebar && tapSelection.row === r && tapSelection.col === c) {
+          sq.classList.add('tap-selected');
+        }
         if (uncertainSet.has(rcToSquareName(r, c))) {
           sq.classList.add('sq-uncertain');
           sq.setAttribute('aria-label', rcToSquareName(r, c) + ' — uncertain');
@@ -2742,10 +3038,12 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
           pe.dataset.fromCol = c;
           pe.addEventListener('dragstart', onBoardPieceDragStart);
           pe.addEventListener('dragend',   onBoardPieceDragEnd);
+          pe.addEventListener('click', e => { e.stopPropagation(); handleBoardSquareTap(r, c); });
           attachTouchDrag(pe, false);
           sq.appendChild(pe);
         }
 
+        sq.addEventListener('click', () => handleBoardSquareTap(r, c));
         sq.addEventListener('dragover',  onSquareDragOver);
         sq.addEventListener('dragleave', onSquareDragLeave);
         sq.addEventListener('drop',      onSquareDrop);
@@ -2836,9 +3134,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         if (sq) {
           const toRow = parseInt(sq.dataset.row, 10);
           const toCol = parseInt(sq.dataset.col, 10);
+          recordBoardUndo();
           if (!dragData.fromSidebar) cbState[dragData.fromRow][dragData.fromCol] = null;
           cbState[toRow][toCol] = dragData.piece;
           dragData = null;
+          tapSelection = null;
           cleanup();
           renderChessBoard();
           scheduleBoardReanalyse();
@@ -2846,8 +3146,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         }
         const sb = under.closest('.piece-sidebar');
         if (sb && !dragData.fromSidebar) {
+          recordBoardUndo();
           cbState[dragData.fromRow][dragData.fromCol] = null;
           dragData = null;
+          tapSelection = null;
           cleanup();
           renderChessBoard();
           scheduleBoardReanalyse();
@@ -2892,11 +3194,13 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     if (!dragData) return;
     const toRow = parseInt(e.currentTarget.dataset.row, 10);
     const toCol = parseInt(e.currentTarget.dataset.col, 10);
+    recordBoardUndo();
     if (!dragData.fromSidebar) {
       cbState[dragData.fromRow][dragData.fromCol] = null;
     }
     cbState[toRow][toCol] = dragData.piece;
     dragData = null;
+    tapSelection = null;
     renderChessBoard();
     scheduleBoardReanalyse();
   }
@@ -2908,6 +3212,13 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         e.dataTransfer.effectAllowed = 'copy';
       });
       attachTouchDrag(pe, true);
+      if (pe.dataset.clickAttached !== '1') {
+        pe.dataset.clickAttached = '1';
+        pe.addEventListener('click', e => {
+          e.stopPropagation();
+          handleSidebarPieceTap(e.currentTarget.dataset.piece);
+        });
+      }
     });
 
     sidebarEl.addEventListener('dragover', e => {
@@ -2921,8 +3232,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
       e.preventDefault();
       sidebarEl.classList.remove('drag-over');
       if (dragData && !dragData.fromSidebar) {
+        recordBoardUndo();
         cbState[dragData.fromRow][dragData.fromCol] = null;
         dragData = null;
+        tapSelection = null;
         renderChessBoard();
         scheduleBoardReanalyse();
       }
@@ -2972,18 +3285,8 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     const fen = getEditedBoardFen();
     cbFenMeta = fen.split(/\s+/).slice(1).join(' ');
 
-    // Immediately sync FEN/PGN downloads and external links to current position
-    if (fenCard) {
-      fenCard.onclick   = () => triggerDownload(fen, 'chessight-position.fen', 'text/plain');
-      fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
-    }
-    if (pgnCard) {
-      const pgn = buildPGN(fen, null);
-      pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
-      pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
-    }
-    updateQuickActions(fen);
-    updateShareUrl(fen);
+    // Immediately sync FEN/PGN downloads and external links to current position.
+    syncBoardOutputs(fen);
 
     refreshDerivedDisplays();
     cbReTimer     = setTimeout(() => startEngine(fen), 1200);
@@ -2997,11 +3300,15 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     cbFenMeta   = parts.slice(1).join(' ') || 'w - - 0 1';
     cbFlipped   = false;
     originalFen = fen;
+    tapSelection = null;
+    boardUndoStack = [];
     boardBlock.style.display = '';
     renderChessBoard();
     initSidebarDrag(pieceSidebarL);
     initSidebarDrag(pieceSidebarR);
     updateStmButton();
+    updateUndoButton();
+    syncBoardOutputs(fen, { downloads: false });
   }
 
   function hideBoard() {
@@ -3020,12 +3327,71 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   });
 
   document.getElementById('toggleStmBtn').addEventListener('click', () => {
+    recordBoardUndo();
     const parts = cbFenMeta.split(' ');
     parts[0] = parts[0] === 'w' ? 'b' : 'w';
     if (parts.length >= 3) parts[2] = '-';   // en-passant invalid after toggle
     cbFenMeta = parts.join(' ');
     scheduleBoardReanalyse();
   });
+
+  if (clearBoardBtn) {
+    clearBoardBtn.addEventListener('click', () => {
+      loadBoardFen('8/8/8/8/8/8/8/8 w - - 0 1', { recordUndo: true, clearRights: true });
+    });
+  }
+
+  if (startBoardBtn) {
+    startBoardBtn.addEventListener('click', () => {
+      loadBoardFen(START_FEN, { recordUndo: true });
+    });
+  }
+
+  function loadSampleBoard() {
+    showResults();
+    feedbackBlock.style.display = '';
+    downloadRow.style.display = '';
+    confidenceBar.style.display = 'none';
+    aiVerdict = 'equal';
+    aiFeedbackHtml = 'Sample position loaded. Adjust pieces or run a fresh scan when ready.';
+    setEvaluationFromAi(aiVerdict);
+    complexityPill.textContent = 'Sample';
+    complexityPill.className = 'complexity-pill quiet';
+    showBoard(SAMPLE_FEN);
+    refreshDerivedDisplays();
+    startEngine(SAMPLE_FEN);
+  }
+
+  if (demoBoardBtn) demoBoardBtn.addEventListener('click', loadSampleBoard);
+  if (sampleBoardBtn) sampleBoardBtn.addEventListener('click', loadSampleBoard);
+
+  if (undoBoardBtn) {
+    undoBoardBtn.addEventListener('click', () => {
+      const prev = boardUndoStack.pop();
+      updateUndoButton();
+      if (prev) loadBoardFen(prev, { reanalyse: true });
+    });
+  }
+
+  if (loadFenBtn) {
+    loadFenBtn.addEventListener('click', () => {
+      const fen = fenInput ? fenInput.value : '';
+      if (!isLoadableFen(fen)) {
+        if (validationCard && validationText) {
+          validationCard.classList.add('visible');
+          validationCard.classList.remove('valid');
+          validationText.textContent = 'That FEN is not loadable. Check that every rank adds up to eight squares.';
+        }
+        return;
+      }
+      loadBoardFen(fen, { recordUndo: true });
+    });
+  }
+
+  if (copyFenBtn) copyFenBtn.addEventListener('click', () => copyText(getBoardFen(), copyFenBtn));
+  if (copyPgnBtn) copyPgnBtn.addEventListener('click', () => copyText(buildPGN(getBoardFen(), null), copyPgnBtn));
+  if (copyLichessBtn) copyLichessBtn.addEventListener('click', () => copyText(lichessLink.href, copyLichessBtn));
+  if (copyChesscomBtn) copyChesscomBtn.addEventListener('click', () => copyText(chesscomLink.href, copyChesscomBtn));
 
   /* ── Analyse click ───────────────────────────────────── */
   analyseBtn.addEventListener('click', async () => {
