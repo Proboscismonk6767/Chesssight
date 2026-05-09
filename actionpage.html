@@ -962,46 +962,58 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-size: 1.35rem;
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
   line-height: 1;
-  border-radius: 6px;
-  background: rgba(26,46,26,0.3);
-  border: 1px solid rgba(201,168,76,0.1);
+  border-radius: 50%;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: none;
-  transition: background var(--transition), border-color var(--transition), transform 0.15s var(--ease);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
-.sb-piece:hover {
-  background: rgba(201,168,76,0.1);
-  border-color: rgba(201,168,76,0.35);
-  transform: scale(1.08);
-}
-.sb-piece:active { cursor: grabbing; }
+.sb-piece:hover  { transform: scale(1.12); }
+.sb-piece:active { cursor: grabbing; transform: scale(0.95); }
 .sb-piece.piece-white {
-  color: var(--cream);
-  text-shadow:
-    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
-    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d;
+  background: var(--cream);
+  color: var(--green-deep);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.55);
+  border: 1.5px solid rgba(201,168,76,0.45);
 }
 .sb-piece.piece-black {
-  color: #0d0d0d;
-  text-shadow:
-    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
-    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream);
+  background: var(--green-deep);
+  color: var(--cream);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(201,168,76,0.25);
 }
 .drag-ghost {
   position: fixed;
   pointer-events: none;
   z-index: 9999;
-  font-size: 2.4rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 1.7rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transform: translate(-50%, -50%);
-  opacity: 0.85;
+  opacity: 0.9;
+}
+.drag-ghost.piece-white {
+  background: var(--cream);
+  color: var(--green-deep);
+  border: 1.5px solid rgba(201,168,76,0.5);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+}
+.drag-ghost.piece-black {
+  background: var(--green-deep);
+  color: var(--cream);
+  border: 1.5px solid rgba(201,168,76,0.28);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.6);
 }
 
 /* Board grid */
@@ -1048,7 +1060,13 @@ body::before {
 
 /* Pieces on board */
 .board-piece {
-  font-size: clamp(1.3rem, 5.5cqi, 2.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  font-size: clamp(0.95rem, 4.2vw, 1.75rem);
   line-height: 1;
   cursor: grab;
   user-select: none;
@@ -1057,26 +1075,27 @@ body::before {
   touch-action: none;
   position: relative;
   z-index: 1;
-  transition: opacity 0.1s;
+  transition: opacity 0.1s, transform 0.1s;
 }
-.board-piece:active { cursor: grabbing; }
-.board-piece.dragging { opacity: 0.3; }
+.board-piece:active { cursor: grabbing; transform: scale(0.9); }
+.board-piece.dragging { opacity: 0.25; }
 .board-piece.piece-white {
-  color: var(--cream);
-  text-shadow:
-    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
-    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d,
-     0   -1px 0 #0d0d0d,  0    1px 0 #0d0d0d,
-    -1px  0   0 #0d0d0d,  1px  0   0 #0d0d0d,
-     0    2px 3px rgba(0,0,0,0.5);
+  background: var(--cream);
+  color: var(--green-deep);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.5),
+    0 1px 2px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(201,168,76,0.45);
 }
 .board-piece.piece-black {
-  color: #0d0d0d;
-  text-shadow:
-    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
-    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream),
-     0   -1px 0 var(--cream),  0    1px 0 var(--cream),
-    -1px  0   0 var(--cream),  1px  0   0 var(--cream);
+  background: var(--green-deep);
+  color: var(--cream);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.6),
+    0 1px 2px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(201,168,76,0.22);
 }
 
 /* Hint */
@@ -1559,14 +1578,14 @@ body::before {
           <!-- Left sidebar: white pieces, 2 columns -->
           <div class="piece-sidebar piece-sidebar--left" id="pieceSidebarLeft" aria-label="White pieces">
             <div class="piece-col">
-              <span class="sb-piece piece-white" draggable="true" data-piece="K" title="White King">♚</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="Q" title="White Queen">♛</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="R" title="White Rook">♜</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="K" title="White King">♔︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="Q" title="White Queen">♕︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="R" title="White Rook">♖︎</span>
             </div>
             <div class="piece-col">
-              <span class="sb-piece piece-white" draggable="true" data-piece="B" title="White Bishop">♝</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="N" title="White Knight">♞</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="P" title="White Pawn">♟</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="B" title="White Bishop">♗︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="N" title="White Knight">♘︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="P" title="White Pawn">♙︎</span>
             </div>
           </div>
 
@@ -1578,14 +1597,14 @@ body::before {
           <!-- Right sidebar: black pieces, 2 columns -->
           <div class="piece-sidebar piece-sidebar--right" id="pieceSidebarRight" aria-label="Black pieces">
             <div class="piece-col">
-              <span class="sb-piece piece-black" draggable="true" data-piece="k" title="Black King">♚</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="q" title="Black Queen">♛</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="r" title="Black Rook">♜</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="k" title="Black King">♚︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="q" title="Black Queen">♛︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="r" title="Black Rook">♜︎</span>
             </div>
             <div class="piece-col">
-              <span class="sb-piece piece-black" draggable="true" data-piece="b" title="Black Bishop">♝</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="n" title="Black Knight">♞</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="p" title="Black Pawn">♟</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="b" title="Black Bishop">♝︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="n" title="Black Knight">♞︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="p" title="Black Pawn">♟︎</span>
             </div>
           </div>
 
@@ -2586,8 +2605,8 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   /* ── Chess board ─────────────────────────────────────────── */
   // Use filled glyphs for both sides; colour differentiates white vs black via CSS.
   const PIECE_UNICODE = {
-    'K':'♚','Q':'♛','R':'♜','B':'♝','N':'♞','P':'♟',
-    'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'
+    'K':'♔︎','Q':'♕︎','R':'♖︎','B':'♗︎','N':'♘︎','P':'♙︎',
+    'k':'♚︎','q':'♛︎','r':'♜︎','b':'♝︎','n':'♞︎','p':'♟︎'
   };
 
   let cbState        = Array(8).fill(null).map(() => Array(8).fill(null));
