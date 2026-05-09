@@ -3222,9 +3222,8 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   /* ── Quick-action buttons ────────────────────────────── */
   function updateQuickActions(fen) {
     if (!fen || !lichessLink || !chesscomLink) return;
-    const enc = encodeURIComponent(fen);
-    lichessLink.href  = 'https://lichess.org/analysis/' + enc;
-    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + enc;
+    lichessLink.href  = 'https://lichess.org/analysis/standard/' + fen.replace(/ /g, '_');
+    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + fen.replace(/ /g, '%20');
   }
 
   /* ── Share-via-URL ───────────────────────────────────── */
