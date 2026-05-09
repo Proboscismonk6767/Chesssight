@@ -2188,7 +2188,7 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     const castling =
       result.castling && result.castling !== 'unknown' && result.castling !== ''
         ? result.castling
-        : 'KQkq';
+        : '-';
 
     const enPassant =
       result.en_passant && result.en_passant !== 'unknown' && result.en_passant !== ''
@@ -2228,6 +2228,28 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     }
 
     return headers + '\n\n' + movetext + '\n';
+  }
+
+  function normalizeFen(fen, clearIrreliableRights = false) {
+    const parts = (fen || '').trim().split(/\s+/);
+    while (parts.length < 6) {
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+    }
+
+    parts[1] = parts[1] === 'b' ? 'b' : 'w';
+    if (clearIrreliableRights) {
+      parts[2] = '-';
+      parts[3] = '-';
+    } else {
+      parts[2] = /^[KQkq]+$/.test(parts[2] || '')
+        ? 'KQkq'.split('').filter(ch => parts[2].includes(ch)).join('')
+        : '-';
+      if (!parts[2]) parts[2] = '-';
+      parts[3] = /^([a-h][36]|-)$/.test(parts[3] || '') ? parts[3] : '-';
+    }
+    parts[4] = /^\d+$/.test(parts[4] || '') ? parts[4] : '0';
+    parts[5] = /^[1-9]\d*$/.test(parts[5] || '') ? parts[5] : '1';
+    return parts.slice(0, 6).join(' ');
   }
 
   /* ── Error renderer ──────────────────────────────────── */
@@ -2573,7 +2595,7 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   let cbState        = Array(8).fill(null).map(() => Array(8).fill(null));
   let cbFlipped      = false;
-  let cbFenMeta      = 'w KQkq - 0 1';
+  let cbFenMeta      = 'w - - 0 1';
   let cbReTimer      = null;
   let originalFen    = null;
   let aiFeedbackHtml = '';
@@ -2652,7 +2674,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   }
 
   function getBoardFen() {
-    return stateToFenPlacement(cbState) + ' ' + cbFenMeta;
+    return normalizeFen(stateToFenPlacement(cbState) + ' ' + cbFenMeta);
+  }
+
+  function getEditedBoardFen() {
+    return normalizeFen(stateToFenPlacement(cbState) + ' ' + cbFenMeta, true);
   }
 
   function squareNameToRC(sq) {
@@ -2943,7 +2969,8 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     clearTimeout(geminiReTimer);
     lastEngScore = null;
 
-    const fen = getBoardFen();
+    const fen = getEditedBoardFen();
+    cbFenMeta = fen.split(/\s+/).slice(1).join(' ');
 
     // Immediately sync FEN/PGN downloads and external links to current position
     if (fenCard) {
@@ -2964,9 +2991,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   }
 
   function showBoard(fen) {
+    fen = normalizeFen(fen);
     const parts = fen.split(' ');
     cbState     = fenToState(parts[0]);
-    cbFenMeta   = parts.slice(1).join(' ') || 'w KQkq - 0 1';
+    cbFenMeta   = parts.slice(1).join(' ') || 'w - - 0 1';
     cbFlipped   = false;
     originalFen = fen;
     boardBlock.style.display = '';
@@ -3222,8 +3250,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   /* ── Quick-action buttons ────────────────────────────── */
   function updateQuickActions(fen) {
     if (!fen || !lichessLink || !chesscomLink) return;
-    lichessLink.href  = 'https://lichess.org/analysis/standard/' + fen.replace(/ /g, '_');
-    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + fen.replace(/ /g, '%20');
+    const cleanFen = normalizeFen(fen);
+    const lichessFen = cleanFen.replace(/\s+/g, '_');
+    lichessLink.href  = 'https://lichess.org/analysis/standard/' + lichessFen;
+    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + encodeURIComponent(cleanFen);
   }
 
   /* ── Share-via-URL ───────────────────────────────────── */
@@ -3262,9 +3292,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     // Normalise to a 6-field FEN for the engine.
     const parts = sharedFen.trim().split(/\s+/);
     while (parts.length < 6) {
-      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
     }
-    const fullFen = parts.join(' ');
+    const fullFen = normalizeFen(parts.join(' '));
 
     lowConfidenceSquares = [];
     aiVerdict      = 'equal';
@@ -3445,9 +3475,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     // Fill in any missing FEN fields.
     const parts = entry.fen.trim().split(/\s+/);
     while (parts.length < 6) {
-      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
     }
-    const fullFen = parts.join(' ');
+    const fullFen = normalizeFen(parts.join(' '));
 
     lowConfidenceSquares = [];
     aiVerdict      = 'equal';
