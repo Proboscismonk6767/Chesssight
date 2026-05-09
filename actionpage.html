@@ -1546,7 +1546,7 @@ body::before {
 </main>
 
 <footer class="page-footer">
-  &copy; 2026 ChessSight<span style="color:var(--gold-dim);font-style:italic;">.ai</span> &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Terms</a>
+  &copy; 2026 ChessSight<span style="color:var(--gold-dim);font-style:italic;">.ai</span> &nbsp;·&nbsp; <a href="privacy.html">Privacy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
@@ -2983,9 +2983,11 @@ IMPORTANT:
       }
 
       // Two-pass verification — best-effort, silently falls back on failure.
-      // Skipped for video: the engine analyses one frame, but moves_san already
-      // gives us cross-frame validation.
-      if (result.piece_placement && inputType !== 'video') {
+      // Skipped for video and for high-confidence clean scans (no uncertain squares).
+      const needsVerification = result.piece_placement &&
+        inputType !== 'video' &&
+        (result.confidence !== 'high' || (result.low_confidence_squares && result.low_confidence_squares.length > 0));
+      if (needsVerification) {
         spinLabel.textContent = 'Verifying position…';
         try {
           const verified = await verifyPosition(result.piece_placement, inlineDataParts, inputType);

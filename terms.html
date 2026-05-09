@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="robots" content="noindex">
+  <title>Terms of Use — ChessSight.ai</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-deep:  #1a2e1a;
+      --black-near:  #0d0d0d;
+      --cream:       #f5f0e8;
+      --cream-dark:  #e8e0d0;
+      --gold:        #c9a84c;
+      --gold-dim:    rgba(201,168,76,0.25);
+      --text-muted:  rgba(245,240,232,0.55);
+      --font-display:'Playfair Display', Georgia, serif;
+      --font-body:   'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black-near);
+      color: var(--cream);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Nav */
+    #nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(1.25rem, 5vw, 3rem);
+      height: 64px;
+      background: rgba(13,13,13,0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--gold-dim);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--cream);
+      text-decoration: none;
+    }
+    .nav-logo .ai { color: var(--gold); font-style: italic; font-weight: 400; }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .nav-back:hover { opacity: 1; }
+
+    /* Content */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px clamp(1.25rem, 5vw, 2rem) 96px;
+    }
+
+    .doc-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.75rem;
+    }
+
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+    }
+
+    .doc-meta {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+    }
+
+    .gold-rule {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 2.5rem 0;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 18px;
+      height: 1px;
+      background: var(--gold);
+      vertical-align: middle;
+      margin-right: 0.6rem;
+      margin-bottom: 2px;
+    }
+
+    p { color: rgba(245,240,232,0.78); margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      color: rgba(245,240,232,0.78);
+      padding-left: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    li { margin-bottom: 0.35rem; }
+
+    a { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: #dfc06a; }
+
+    .highlight-box {
+      border: 1px solid var(--gold-dim);
+      background: rgba(201,168,76,0.06);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .highlight-box p { color: rgba(245,240,232,0.88); margin-bottom: 0; }
+
+    .warning-box {
+      border: 1px solid rgba(201,168,76,0.4);
+      background: rgba(26,46,26,0.4);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .warning-box p { color: rgba(245,240,232,0.88); margin-bottom: 0; }
+
+    strong { color: var(--cream); font-weight: 600; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      font-size: 0.75rem;
+      color: rgba(245,240,232,0.3);
+      letter-spacing: 0.06em;
+      border-top: 1px solid var(--gold-dim);
+      background: var(--green-deep);
+    }
+    footer a { color: rgba(201,168,76,0.6); text-decoration: none; }
+    footer a:hover { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <nav id="nav">
+    <a href="/" class="nav-logo">ChessSight<span class="ai">.ai</span></a>
+    <a href="actionpage.html" class="nav-back">&#8592; Back to app</a>
+  </nav>
+
+  <main class="page">
+
+    <p class="doc-eyebrow">Legal</p>
+    <h1 class="doc-title">Terms of Use</h1>
+    <p class="doc-meta">Effective date: 9 May 2026 &nbsp;·&nbsp; Last updated: 9 May 2026</p>
+
+    <div class="highlight-box">
+      <p>Please read these Terms of Use carefully before using ChessSight.ai. By accessing or using the service, you agree to be bound by these terms. If you do not agree, please do not use the service.</p>
+    </div>
+
+    <hr class="gold-rule">
+
+    <h2>1. About ChessSight.ai</h2>
+    <p>ChessSight.ai is an AI-powered chess board analysis tool operated by Abtin Feizollahi ("we", "us", "our"). The service allows users to upload photographs or short video clips of physical chess boards and receive a digital position in FEN/PGN notation, along with computer analysis.</p>
+    <p>ChessSight.ai is currently in an early-access phase. Features, availability, and functionality may change without notice.</p>
+
+    <h2>2. Eligibility</h2>
+    <p>You must be at least 13 years of age to use ChessSight.ai. By using the service, you represent that you meet this requirement. If you are under 18, you should use the service only with the involvement of a parent or guardian.</p>
+
+    <h2>3. Acceptable Use</h2>
+    <p>You agree to use ChessSight.ai only for lawful purposes and in a manner consistent with these terms. You must not:</p>
+    <ul>
+      <li>Upload content that you do not have the right to share, or that infringes any third party's intellectual property rights, privacy rights, or any applicable law.</li>
+      <li>Upload images or videos containing nudity, violence, illegal content, or personal data of third parties without their consent.</li>
+      <li>Attempt to reverse-engineer, scrape, or systematically extract data from the service.</li>
+      <li>Use automated tools, bots, or scripts to interact with the service in a way that places disproportionate load on our infrastructure.</li>
+      <li>Attempt to circumvent rate limits, access controls, or any security measure implemented by the service.</li>
+      <li>Use the service to develop or train a competing AI model or product without our express written consent.</li>
+      <li>Misrepresent the origin or accuracy of analysis results produced by the service.</li>
+    </ul>
+
+    <h2>4. Rate Limits and Fair Use</h2>
+    <p>To maintain service quality for all users, ChessSight.ai enforces rate limits of 20 analyses per hour and 5 analyses per minute per IP address. These limits may change over time. Systematic circumvention of these limits may result in access being blocked.</p>
+
+    <h2>5. Accuracy Disclaimer</h2>
+
+    <div class="warning-box">
+      <p>ChessSight.ai uses AI image recognition, which is imperfect. The position produced by an analysis may contain errors, particularly where a photo is taken at an oblique angle, in poor lighting, or with a non-standard piece set. You should always verify the result before relying on it for competitive, coaching, or archival purposes.</p>
+    </div>
+
+    <p>We make no representations or warranties — express or implied — regarding the accuracy, completeness, or fitness for a particular purpose of any position, notation, move sequence, or computer evaluation produced by the service. Engine evaluations are provided by Stockfish running locally in your browser and reflect the engine's assessment of the position as presented; they are not a substitute for analysis by a qualified chess professional.</p>
+
+    <h2>6. Intellectual Property</h2>
+    <p><strong>Our content.</strong> The ChessSight.ai service, including its design, code, branding, and written content, is owned by or licensed to us and is protected by applicable intellectual property laws. You may not copy, reproduce, distribute, or create derivative works from any part of the service without our prior written consent.</p>
+    <p><strong>Your uploads.</strong> You retain all ownership rights in any images or videos you upload. By uploading content, you grant us a limited, non-exclusive, royalty-free licence to process that content solely for the purpose of providing the analysis you requested. We do not claim any ownership over your uploads and, as described in our Privacy Policy, do not retain them after the request is complete.</p>
+    <p><strong>Analysis results.</strong> FEN strings, PGN notation, and chess positions are factual representations of a game state and are not independently copyrightable. You are free to use, share, and build upon analysis results produced by the service.</p>
+
+    <h2>7. Disclaimers</h2>
+    <p>The service is provided <strong>"as is"</strong> and <strong>"as available"</strong> without warranties of any kind, whether express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+    <p>We do not warrant that the service will be uninterrupted, error-free, or free from harmful components. We reserve the right to suspend, modify, or discontinue the service at any time without notice.</p>
+
+    <h2>8. Limitation of Liability</h2>
+    <p>To the fullest extent permitted by applicable law, we shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of, or inability to use, the service — including but not limited to loss of data, loss of profits, or reputational damage — even if we have been advised of the possibility of such damages.</p>
+    <p>Our total aggregate liability to you for any claim arising out of or related to these terms or the service shall not exceed the greater of (a) the amount you paid to us in the twelve months preceding the claim, or (b) £50.</p>
+    <p>Nothing in these terms excludes or limits our liability for death or personal injury caused by negligence, fraud, or any other liability that cannot lawfully be excluded under English law.</p>
+
+    <h2>9. Third-Party Links and Services</h2>
+    <p>The service may contain links to third-party websites or services (including Lichess and Chess.com). These links are provided for convenience only. We have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party site. Your use of those sites is governed by their own terms.</p>
+
+    <h2>10. Changes to These Terms</h2>
+    <p>We may update these Terms of Use from time to time. When we do, we will revise the "Last updated" date at the top of this page. If changes are material, we will make reasonable efforts to notify users — for example, by sending an email to newsletter subscribers. Your continued use of the service after the updated terms take effect constitutes acceptance of the revised terms.</p>
+
+    <h2>11. Governing Law and Jurisdiction</h2>
+    <p>These terms are governed by and construed in accordance with the laws of England and Wales. Any disputes arising under or in connection with these terms shall be subject to the exclusive jurisdiction of the courts of England and Wales, except where mandatory consumer protection laws in your country of residence require otherwise.</p>
+
+    <h2>12. Contact</h2>
+    <p>If you have any questions about these Terms of Use, please contact us at <a href="mailto:chesssight@gmail.com">chesssight@gmail.com</a>.</p>
+
+  </main>
+
+  <footer>
+    &copy; 2026 ChessSight.ai &nbsp;·&nbsp;
+    <a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Use</a> &nbsp;·&nbsp;
+    <a href="actionpage.html">Back to App</a>
+  </footer>
+
+</body>
+</html>

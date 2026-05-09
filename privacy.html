@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d0d0d">
+  <meta name="robots" content="noindex">
+  <title>Privacy Policy — ChessSight.ai</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-deep:  #1a2e1a;
+      --black-near:  #0d0d0d;
+      --cream:       #f5f0e8;
+      --cream-dark:  #e8e0d0;
+      --gold:        #c9a84c;
+      --gold-dim:    rgba(201,168,76,0.25);
+      --text-muted:  rgba(245,240,232,0.55);
+      --font-display:'Playfair Display', Georgia, serif;
+      --font-body:   'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black-near);
+      color: var(--cream);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Nav */
+    #nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(1.25rem, 5vw, 3rem);
+      height: 64px;
+      background: rgba(13,13,13,0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--gold-dim);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--cream);
+      text-decoration: none;
+    }
+    .nav-logo .ai { color: var(--gold); font-style: italic; font-weight: 400; }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .nav-back:hover { opacity: 1; }
+
+    /* Content */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px clamp(1.25rem, 5vw, 2rem) 96px;
+    }
+
+    .doc-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.75rem;
+    }
+
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+    }
+
+    .doc-meta {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+    }
+
+    .gold-rule {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 2.5rem 0;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 18px;
+      height: 1px;
+      background: var(--gold);
+      vertical-align: middle;
+      margin-right: 0.6rem;
+      margin-bottom: 2px;
+    }
+
+    p { color: rgba(245,240,232,0.78); margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      color: rgba(245,240,232,0.78);
+      padding-left: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    li { margin-bottom: 0.35rem; }
+
+    a { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: #dfc06a; }
+
+    .highlight-box {
+      border: 1px solid var(--gold-dim);
+      background: rgba(201,168,76,0.06);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .highlight-box p { color: rgba(245,240,232,0.88); margin-bottom: 0; }
+
+    strong { color: var(--cream); font-weight: 600; }
+
+    .third-party-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .third-party-table th {
+      text-align: left;
+      font-weight: 600;
+      color: var(--cream);
+      border-bottom: 1px solid var(--gold-dim);
+      padding: 0.5rem 0.75rem 0.5rem 0;
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .third-party-table td {
+      vertical-align: top;
+      color: rgba(245,240,232,0.72);
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      padding: 0.7rem 0.75rem 0.7rem 0;
+    }
+    .third-party-table td:first-child { color: var(--cream); font-weight: 500; white-space: nowrap; padding-right: 1.5rem; }
+    .third-party-table tr:last-child td { border-bottom: none; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      font-size: 0.75rem;
+      color: rgba(245,240,232,0.3);
+      letter-spacing: 0.06em;
+      border-top: 1px solid var(--gold-dim);
+      background: var(--green-deep);
+    }
+    footer a { color: rgba(201,168,76,0.6); text-decoration: none; }
+    footer a:hover { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <nav id="nav">
+    <a href="/" class="nav-logo">ChessSight<span class="ai">.ai</span></a>
+    <a href="actionpage.html" class="nav-back">&#8592; Back to app</a>
+  </nav>
+
+  <main class="page">
+
+    <p class="doc-eyebrow">Legal</p>
+    <h1 class="doc-title">Privacy Policy</h1>
+    <p class="doc-meta">Effective date: 9 May 2026 &nbsp;·&nbsp; Last updated: 9 May 2026</p>
+
+    <div class="highlight-box">
+      <p>ChessSight.ai is designed to respect your privacy. We do not retain the images or videos you upload beyond the duration of a single analysis request, we do not sell your data, and we do not display advertising.</p>
+    </div>
+
+    <hr class="gold-rule">
+
+    <h2>1. Who We Are</h2>
+    <p>ChessSight.ai is operated by Abtin Feizollahi ("we", "us", "our"). For the purposes of UK data protection law and the UK GDPR, we are the data controller for personal data processed through this service. You can contact us at <a href="mailto:chesssight@gmail.com">chesssight@gmail.com</a>.</p>
+
+    <h2>2. Information We Collect</h2>
+    <p>We collect the minimum information necessary to provide the service.</p>
+
+    <p><strong>Images and videos you upload.</strong> When you use the board analysis feature, images or video clips are transmitted from your device to our server-side proxy (a Cloudflare Worker), which forwards them to Google's Gemini API for analysis. Your media is sent solely for the purpose of producing a chess position and is not stored on our servers after the request completes.</p>
+
+    <p><strong>IP address (rate limiting only).</strong> Your IP address is stored temporarily in a Cloudflare KV store to enforce per-user rate limits (a maximum of 20 analyses per hour and 5 per minute). This data expires automatically after one hour and is not used for any other purpose.</p>
+
+    <p><strong>Analysis history (local to your device).</strong> If you use the analysis feature, your last 8 analyses — including the resulting FEN position and a small thumbnail — are stored in your browser's <code>localStorage</code>. This data never leaves your device and is not accessible to us. You can clear it at any time using the "Clear history" button within the app, or by clearing your browser's site data.</p>
+
+    <p><strong>Email address (newsletter only).</strong> If you subscribe to our newsletter via the sign-up form, your email address is collected and managed by Buttondown (buttondown.com), our newsletter platform. You can unsubscribe at any time using the link in any newsletter email.</p>
+
+    <h2>3. How We Use Your Information</h2>
+    <ul>
+      <li><strong>Providing the service</strong> — processing your uploaded media through the Gemini API to produce a FEN/PGN position and analysis.</li>
+      <li><strong>Rate limiting</strong> — using your IP address to prevent abuse and ensure fair access for all users.</li>
+      <li><strong>Sending newsletters</strong> — if you have subscribed, communicating product updates and announcements to you via Buttondown.</li>
+    </ul>
+    <p>We do not use your data for advertising, profiling, or any automated decision-making that produces legal or similarly significant effects.</p>
+
+    <h2>4. Legal Basis for Processing (UK GDPR)</h2>
+    <ul>
+      <li><strong>Contract / steps prior to contract</strong> (Article 6(1)(b)) — processing your uploaded media to deliver the analysis you requested.</li>
+      <li><strong>Legitimate interests</strong> (Article 6(1)(f)) — storing your IP address ephemerally to enforce rate limits and prevent abuse, where our interest in operating a fair and secure service is not overridden by your rights.</li>
+      <li><strong>Consent</strong> (Article 6(1)(a)) — collecting your email address for the newsletter. You may withdraw consent at any time by unsubscribing.</li>
+    </ul>
+
+    <h2>5. Third-Party Services</h2>
+    <table class="third-party-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Purpose</th>
+          <th>Data shared</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cloudflare</td>
+          <td>Request proxying, rate limiting, hosting</td>
+          <td>IP address, request metadata</td>
+        </tr>
+        <tr>
+          <td>Google Gemini API</td>
+          <td>AI chess board recognition and analysis</td>
+          <td>Uploaded image or video (not retained)</td>
+        </tr>
+        <tr>
+          <td>Buttondown</td>
+          <td>Newsletter delivery</td>
+          <td>Email address (if subscribed)</td>
+        </tr>
+        <tr>
+          <td>Google Fonts</td>
+          <td>Typography</td>
+          <td>Your IP address when fonts are loaded</td>
+        </tr>
+        <tr>
+          <td>Lichess / Chess.com</td>
+          <td>External analysis links (optional)</td>
+          <td>FEN string (in URL, if you click the link)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>We encourage you to review the privacy policies of these services for details on how they handle data sent to them.</p>
+
+    <h2>6. Data Retention</h2>
+    <ul>
+      <li><strong>Uploaded media</strong> — not retained after the analysis request completes.</li>
+      <li><strong>IP addresses</strong> — deleted automatically after one hour via KV TTL.</li>
+      <li><strong>Analysis history</strong> — stored only in your browser's <code>localStorage</code>; retained until you clear it or clear your browser's site data.</li>
+      <li><strong>Email address</strong> — retained by Buttondown for as long as you remain subscribed, and deleted upon unsubscription.</li>
+    </ul>
+
+    <h2>7. Your Rights</h2>
+    <p>Under UK GDPR, you have the following rights in relation to your personal data:</p>
+    <ul>
+      <li><strong>Access</strong> — request a copy of the personal data we hold about you.</li>
+      <li><strong>Rectification</strong> — ask us to correct inaccurate data.</li>
+      <li><strong>Erasure</strong> — request deletion of your personal data where there is no legitimate reason for us to continue processing it.</li>
+      <li><strong>Restriction</strong> — ask us to restrict the processing of your data in certain circumstances.</li>
+      <li><strong>Data portability</strong> — receive your data in a structured, machine-readable format.</li>
+      <li><strong>Object</strong> — object to processing based on legitimate interests.</li>
+      <li><strong>Withdraw consent</strong> — where processing is based on consent (i.e. the newsletter), withdraw it at any time without affecting the lawfulness of prior processing.</li>
+    </ul>
+    <p>To exercise any of these rights, contact us at <a href="mailto:chesssight@gmail.com">chesssight@gmail.com</a>. We will respond within 30 days. You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">ico.org.uk</a>.</p>
+
+    <h2>8. Cookies and Local Storage</h2>
+    <p>ChessSight.ai does not use cookies. We use <code>localStorage</code> solely to store your analysis history on your own device, as described in Section 2. No tracking pixels or third-party analytics scripts are loaded by this service.</p>
+
+    <h2>9. Children's Privacy</h2>
+    <p>ChessSight.ai is not directed at children under the age of 13. We do not knowingly collect personal data from children. If you believe a child has provided us with personal information, please contact us and we will promptly delete it.</p>
+
+    <h2>10. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. When we do, we will revise the "Last updated" date at the top of this page. Where changes are material, we will notify newsletter subscribers by email. Continued use of the service after the updated policy takes effect constitutes acceptance of those changes.</p>
+
+    <h2>11. Contact</h2>
+    <p>For any privacy-related questions or requests, please write to us at <a href="mailto:chesssight@gmail.com">chesssight@gmail.com</a>.</p>
+
+  </main>
+
+  <footer>
+    &copy; 2026 ChessSight.ai &nbsp;·&nbsp;
+    <a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Use</a> &nbsp;·&nbsp;
+    <a href="actionpage.html">Back to App</a>
+  </footer>
+
+</body>
+</html>
