@@ -1933,6 +1933,79 @@ body.board-wood .sq-light { background: #c8a060; }
 body.board-wood .sq-dark  { background: #7d4a20; }
 body.board-mono .sq-light { background: #d8d8d8; }
 body.board-mono .sq-dark  { background: #606060; }
+/* Account tab */
+.s-account-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 0 1rem;
+  border-bottom: 1px solid rgba(201,168,76,0.08);
+  margin-bottom: 0.25rem;
+}
+.s-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--green-deep);
+  border: 1px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--gold-light);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.s-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.s-account-name { font-family: var(--font-body); font-size: 0.92rem; font-weight: 600; color: var(--cream); }
+.s-account-email { font-size: 0.78rem; color: var(--cream); opacity: 0.5; margin-top: 2px; }
+.s-account-provider {
+  font-size: 0.68rem;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-top: 4px;
+  display: inline-block;
+}
+.s-input {
+  background: rgba(13,13,13,0.6);
+  border: 1px solid var(--gold-dim);
+  border-radius: 8px;
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.s-input:focus { border-color: var(--gold); }
+.s-btn {
+  background: none;
+  border: 1px solid var(--gold-dim);
+  border-radius: 8px;
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.s-btn:hover { border-color: var(--gold); color: var(--gold); }
+.s-btn-primary { background: var(--gold); border-color: var(--gold); color: var(--black-near); font-weight: 600; }
+.s-btn-primary:hover { background: var(--gold-light); border-color: var(--gold-light); color: var(--black-near); }
+.s-btn-danger { border-color: rgba(220,80,80,0.4); color: #e05555; }
+.s-btn-danger:hover { background: rgba(220,80,80,0.1); border-color: #e05555; color: #e05555; }
+.s-account-guest { padding: 2rem 0; text-align: center; }
+.s-account-guest p { font-size: 0.84rem; color: var(--cream); opacity: 0.55; margin-bottom: 1.2rem; }
+.s-save-status { font-size: 0.75rem; color: var(--gold); opacity: 0; transition: opacity 0.3s; }
+.s-save-status.visible { opacity: 1; }
+.s-name-row { display: flex; flex-direction: column; align-items: stretch; gap: 0.5rem; padding: 0.9rem 0; border-bottom: 1px solid rgba(201,168,76,0.08); }
+.s-name-inputs { display: flex; gap: 0.5rem; }
 </style>
 </head>
 <body>
@@ -4809,6 +4882,7 @@ window.ChessSightAuth = (function () {
       <button class="stab active" data-tab="general"    role="tab">General</button>
       <button class="stab"        data-tab="appearance" role="tab">Appearance</button>
       <button class="stab"        data-tab="display"    role="tab">Display</button>
+      <button class="stab"        data-tab="account"    role="tab">Account</button>
       <button class="stab"        data-tab="about"      role="tab">About</button>
     </div>
     <div class="settings-body">
@@ -4887,6 +4961,38 @@ window.ChessSightAuth = (function () {
             <input type="checkbox" id="s-compact">
             <span class="s-toggle-track"></span>
           </label>
+        </div>
+      </div>
+
+      <!-- Account -->
+      <div class="stab-panel" id="stab-account">
+        <div id="s-acct-signedin" style="display:none">
+          <div class="s-account-header">
+            <div class="s-avatar" id="s-acct-avatar"></div>
+            <div>
+              <div class="s-account-name" id="s-acct-name"></div>
+              <div class="s-account-email" id="s-acct-email"></div>
+              <span class="s-account-provider" id="s-acct-provider"></span>
+            </div>
+          </div>
+          <div class="s-name-row">
+            <div class="s-label">Display name</div>
+            <div class="s-name-inputs">
+              <input class="s-input" id="s-acct-name-input" type="text" placeholder="Your name" autocomplete="off">
+              <button class="s-btn s-btn-primary" id="s-acct-save-name">Save</button>
+            </div>
+            <span class="s-save-status" id="s-acct-save-status">✓ Name updated</span>
+          </div>
+          <div class="s-row">
+            <div class="s-label">Sign out
+              <small>You'll need to sign in again to access your history</small>
+            </div>
+            <button class="s-btn s-btn-danger" id="s-acct-signout">Sign out</button>
+          </div>
+        </div>
+        <div id="s-acct-guest" class="s-account-guest">
+          <p id="s-acct-guest-msg">You're not signed in.</p>
+          <button class="s-btn s-btn-primary" id="s-acct-signin-btn">Sign in / Create account</button>
         </div>
       </div>
 
@@ -5028,6 +5134,81 @@ window.ChessSightSettings = (function () {
 
     function openSettings()  { overlay.classList.add('open'); }
     function closeSettings() { overlay.classList.remove('open'); }
+
+    // ── Account tab ──
+    var acctSignedIn  = document.getElementById('s-acct-signedin');
+    var acctGuest     = document.getElementById('s-acct-guest');
+    var acctAvatar    = document.getElementById('s-acct-avatar');
+    var acctNameEl    = document.getElementById('s-acct-name');
+    var acctEmailEl   = document.getElementById('s-acct-email');
+    var acctProvider  = document.getElementById('s-acct-provider');
+    var acctNameInput = document.getElementById('s-acct-name-input');
+    var acctSaveName  = document.getElementById('s-acct-save-name');
+    var acctSaveStatus = document.getElementById('s-acct-save-status');
+    var acctSignout   = document.getElementById('s-acct-signout');
+    var acctGuestMsg  = document.getElementById('s-acct-guest-msg');
+    var acctSignInBtn = document.getElementById('s-acct-signin-btn');
+
+    function providerLabel(id) {
+      return id === 'google.com' ? 'via Google' : id === 'apple.com' ? 'via Apple' : id === 'password' ? 'via Email' : '';
+    }
+
+    function refreshAccountTab(user) {
+      var authed = user && !user.isAnonymous;
+      if (authed) {
+        if (acctSignedIn) acctSignedIn.style.display = '';
+        if (acctGuest)    acctGuest.style.display = 'none';
+        if (acctAvatar) {
+          acctAvatar.innerHTML = '';
+          if (user.photoURL) {
+            var img = document.createElement('img');
+            img.src = user.photoURL; img.alt = '';
+            acctAvatar.appendChild(img);
+          } else {
+            acctAvatar.textContent = ((user.displayName || user.email || '?')[0] || '?').toUpperCase();
+          }
+        }
+        if (acctNameEl)    acctNameEl.textContent  = user.displayName || 'Player';
+        if (acctEmailEl)   acctEmailEl.textContent = user.email || '';
+        if (acctProvider)  acctProvider.textContent = providerLabel((user.providerData && user.providerData[0]) ? user.providerData[0].providerId : '');
+        if (acctNameInput) acctNameInput.value = user.displayName || '';
+      } else {
+        if (acctSignedIn) acctSignedIn.style.display = 'none';
+        if (acctGuest)    acctGuest.style.display = '';
+        if (acctGuestMsg) acctGuestMsg.textContent = (window.ChessSightAuth && window.ChessSightAuth.isGuestMode()) ? "You're browsing as a guest." : "You're not signed in.";
+      }
+    }
+
+    if (window.ChessSightAuth) window.ChessSightAuth.onAuthChange(refreshAccountTab);
+
+    if (acctSaveName) {
+      acctSaveName.addEventListener('click', function () {
+        var newName = acctNameInput ? acctNameInput.value.trim() : '';
+        if (!newName) return;
+        var fbUser = firebase.auth().currentUser;
+        if (!fbUser) return;
+        fbUser.updateProfile({ displayName: newName }).then(function () {
+          if (acctNameEl) acctNameEl.textContent = newName;
+          if (acctSaveStatus) {
+            acctSaveStatus.classList.add('visible');
+            setTimeout(function () { acctSaveStatus.classList.remove('visible'); }, 2500);
+          }
+        });
+      });
+    }
+
+    if (acctSignout) {
+      acctSignout.addEventListener('click', function () {
+        if (window.ChessSightAuth) window.ChessSightAuth.signOut().then(closeSettings);
+      });
+    }
+
+    if (acctSignInBtn) {
+      acctSignInBtn.addEventListener('click', function () {
+        closeSettings();
+        if (window.ChessSightAuth) window.ChessSightAuth.showAuthModal();
+      });
+    }
 
     if (cogBtn)  cogBtn.addEventListener('click', openSettings);
     if (closeBtn) closeBtn.addEventListener('click', closeSettings);
