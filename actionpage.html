@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#0d0d0d">
 <title>ChessSight — Analyse Position</title>
 <link rel="manifest" href="manifest.json">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5154976184228068"
+     crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -125,35 +129,6 @@ body::before {
   line-height: 1;
 }
 
-/* ─── Background floating pieces ──────────────────────────── */
-.bg-pieces {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.bg-piece {
-  position: absolute;
-  bottom: -10%;
-  font-size: clamp(2.5rem, 5vw, 5rem);
-  color: rgba(201,168,76,0.055);
-  animation: floatUp linear infinite;
-  user-select: none;
-}
-@keyframes floatUp {
-  0%   { transform: translateY(0)   rotate(0deg);   opacity: 0; }
-  5%   { opacity: 1; }
-  95%  { opacity: 1; }
-  100% { transform: translateY(-110vh) rotate(25deg); opacity: 0; }
-}
-.bg-piece:nth-child(1) { left:5%;  animation-duration:31s; animation-delay:-7s;  font-size:3rem; }
-.bg-piece:nth-child(2) { left:18%; animation-duration:26s; animation-delay:-14s; font-size:4.5rem; }
-.bg-piece:nth-child(3) { left:34%; animation-duration:37s; animation-delay:-3s;  font-size:2.5rem; }
-.bg-piece:nth-child(4) { left:52%; animation-duration:29s; animation-delay:-20s; font-size:5rem; }
-.bg-piece:nth-child(5) { left:68%; animation-duration:33s; animation-delay:-10s; font-size:3.5rem; }
-.bg-piece:nth-child(6) { left:82%; animation-duration:24s; animation-delay:-18s; font-size:4rem; }
-.bg-piece:nth-child(7) { left:91%; animation-duration:28s; animation-delay:-5s;  font-size:2.8rem; }
 
 /* ─── Page wrapper ─────────────────────────────────────────── */
 .page {
@@ -896,7 +871,26 @@ body::before {
   color: var(--gold);
   margin: 0;
 }
-.board-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.board-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.board-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.32rem 0.75rem;
+  border: 1px solid rgba(201,168,76,0.18);
+  border-radius: 999px;
+  background: rgba(13,13,13,0.35);
+  color: rgba(245,240,232,0.48);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.board-status-pill.edited {
+  color: var(--gold);
+  border-color: rgba(201,168,76,0.36);
+  background: rgba(201,168,76,0.08);
+}
 .edited-tag {
   display: inline-block;
   font-size: 0.58rem;
@@ -932,6 +926,60 @@ body::before {
 }
 .board-ctrl-btn--primary { color: var(--gold); border-color: rgba(201,168,76,0.4); }
 .board-ctrl-btn--primary:hover { background: rgba(201,168,76,0.12); border-color: var(--gold); }
+.board-ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.board-tools {
+  margin: 1rem 0 0;
+  padding: 0.9rem;
+  border: 1px solid rgba(201,168,76,0.14);
+  border-radius: 10px;
+  background: rgba(13,13,13,0.22);
+}
+.fen-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+.fen-input {
+  min-height: 2.45rem;
+  resize: vertical;
+  padding: 0.62rem 0.75rem;
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.24);
+  color: var(--cream);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.fen-input:focus {
+  outline: none;
+  border-color: rgba(201,168,76,0.55);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+}
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+.validation-card {
+  display: none;
+  margin-top: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(223,192,106,0.25);
+  border-radius: 8px;
+  background: rgba(201,168,76,0.08);
+  color: rgba(245,240,232,0.72);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.validation-card.visible { display: block; }
+.validation-card.valid {
+  border-color: rgba(93,145,96,0.35);
+  background: rgba(93,145,96,0.12);
+}
 
 .board-layout {
   display: grid;
@@ -962,50 +1010,62 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-size: 1.35rem;
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
   line-height: 1;
-  border-radius: 6px;
-  background: rgba(26,46,26,0.3);
-  border: 1px solid rgba(201,168,76,0.1);
+  border-radius: 50%;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   touch-action: none;
-  transition: background var(--transition), border-color var(--transition), transform 0.15s var(--ease);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
-.sb-piece:hover {
-  background: rgba(201,168,76,0.1);
-  border-color: rgba(201,168,76,0.35);
-  transform: scale(1.08);
-}
-.sb-piece:active { cursor: grabbing; }
+.sb-piece:hover  { transform: scale(1.12); }
+.sb-piece:active { cursor: grabbing; transform: scale(0.95); }
 .sb-piece.piece-white {
-  color: var(--cream);
-  text-shadow:
-    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
-    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d;
+  background: var(--cream);
+  color: var(--green-deep);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.55);
+  border: 1.5px solid rgba(201,168,76,0.45);
 }
 .sb-piece.piece-black {
-  color: #0d0d0d;
-  text-shadow:
-    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
-    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream);
+  background: #1c1c1c;
+  color: #c9a84c;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(201,168,76,0.4);
 }
 .drag-ghost {
   position: fixed;
   pointer-events: none;
   z-index: 9999;
-  font-size: 2.4rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 1.7rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transform: translate(-50%, -50%);
-  opacity: 0.85;
+  opacity: 0.9;
+}
+.drag-ghost.piece-white {
+  background: var(--cream);
+  color: var(--green-deep);
+  border: 1.5px solid rgba(201,168,76,0.5);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+}
+.drag-ghost.piece-black {
+  background: #1c1c1c;
+  color: #c9a84c;
+  border: 1.5px solid rgba(201,168,76,0.4);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.6);
 }
 
 /* Board grid */
-.board-container { width: 100%; max-width: 440px; margin: 0 auto; }
+.board-container { width: 100%; max-width: 560px; margin: 0 auto; }
 .board-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -1026,10 +1086,20 @@ body::before {
   cursor: default;
   transition: background 0.15s;
 }
-.sq-light { background: rgba(201,168,76,0.18); }
-.sq-dark  { background: rgba(26,46,26,0.75); }
-.board-square.drag-over.sq-light { background: rgba(201,168,76,0.55); }
-.board-square.drag-over.sq-dark  { background: rgba(201,168,76,0.35); }
+.sq-light { background: #d4b880; }
+.sq-dark  { background: #4a7050; }
+.board-square.drag-over.sq-light { background: #e8ce96; }
+.board-square.drag-over.sq-dark  { background: #6a9070; }
+.board-square.tap-selected::before {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  border: 2px solid rgba(245,240,232,0.9);
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.35);
+  pointer-events: none;
+  z-index: 2;
+}
 
 /* Coordinate labels */
 .sq-rank-label, .sq-file-label {
@@ -1048,7 +1118,14 @@ body::before {
 
 /* Pieces on board */
 .board-piece {
-  font-size: clamp(1.3rem, 5.5cqi, 2.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: clamp(0.95rem, 4.2vw, 1.75rem);
   line-height: 1;
   cursor: grab;
   user-select: none;
@@ -1057,26 +1134,27 @@ body::before {
   touch-action: none;
   position: relative;
   z-index: 1;
-  transition: opacity 0.1s;
+  transition: opacity 0.1s, transform 0.1s;
 }
-.board-piece:active { cursor: grabbing; }
-.board-piece.dragging { opacity: 0.3; }
+.board-piece:active { cursor: grabbing; transform: scale(0.9); }
+.board-piece.dragging { opacity: 0.25; }
 .board-piece.piece-white {
-  color: var(--cream);
-  text-shadow:
-    -1px -1px 0 #0d0d0d, 1px -1px 0 #0d0d0d,
-    -1px  1px 0 #0d0d0d, 1px  1px 0 #0d0d0d,
-     0   -1px 0 #0d0d0d,  0    1px 0 #0d0d0d,
-    -1px  0   0 #0d0d0d,  1px  0   0 #0d0d0d,
-     0    2px 3px rgba(0,0,0,0.5);
+  background: var(--cream);
+  color: var(--green-deep);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.5),
+    0 1px 2px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(201,168,76,0.45);
 }
 .board-piece.piece-black {
-  color: #0d0d0d;
-  text-shadow:
-    -1px -1px 0 var(--cream), 1px -1px 0 var(--cream),
-    -1px  1px 0 var(--cream), 1px  1px 0 var(--cream),
-     0   -1px 0 var(--cream),  0    1px 0 var(--cream),
-    -1px  0   0 var(--cream),  1px  0   0 var(--cream);
+  background: #1c1c1c;
+  color: #c9a84c;
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.6),
+    0 1px 2px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(201,168,76,0.4);
 }
 
 /* Hint */
@@ -1098,6 +1176,8 @@ body::before {
   .board-container      { order: 2; }
   .piece-sidebar--right { order: 3; min-height: unset; flex-direction: row; padding: 0.4rem; justify-content: center; }
   .piece-col { flex-direction: row; }
+  .fen-row { grid-template-columns: 1fr; }
+  .board-status-pill { width: 100%; justify-content: center; }
 }
 
 /* ─── Opening badge ────────────────────────────────────────── */
@@ -1346,20 +1426,314 @@ body::before {
   font-family: var(--font-body);
 }
 .history-clear:hover { color: var(--gold); }
+
+/* ── Cookie / storage consent banner ── */
+.consent-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: rgba(13,13,13,0.97);
+  border-top: 1px solid var(--gold-dim);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 16px 24px;
+  transform: translateY(110%);
+  transition: transform 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+.consent-banner.visible { transform: translateY(0); }
+.consent-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.consent-text { flex: 1; min-width: 260px; }
+.consent-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cream);
+  margin-bottom: 4px;
+}
+.consent-body {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: rgba(245,240,232,0.62);
+}
+.consent-body a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+.consent-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+.consent-btn {
+  padding: 9px 22px;
+  min-height: 40px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid rgba(201,168,76,0.35);
+  transition: background 0.25s, border-color 0.25s, color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.consent-btn--decline {
+  background: transparent;
+  color: rgba(245,240,232,0.55);
+}
+.consent-btn--decline:hover { background: rgba(245,240,232,0.06); color: var(--cream); border-color: rgba(201,168,76,0.6); }
+.consent-btn--accept { background: var(--gold); color: var(--black-near); border-color: var(--gold); }
+.consent-btn--accept:hover { background: var(--gold-light); border-color: var(--gold-light); }
+
+/* ─── Auth Modal ──────────────────────────────────────────── */
+.auth-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(13,13,13,0.88);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s var(--ease);
+}
+.auth-overlay.visible { opacity: 1; pointer-events: auto; }
+.auth-modal {
+  position: relative; width: 92%; max-width: 400px;
+  background: rgba(26,46,26,0.95);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 16px; padding: 2.2rem 1.8rem 1.8rem;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s var(--ease);
+  max-height: 90vh; overflow-y: auto;
+}
+.auth-overlay.visible .auth-modal { transform: translateY(0) scale(1); }
+.auth-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: none; border: none; cursor: pointer;
+  color: rgba(245,240,232,0.45); font-size: 1.4rem; line-height: 1;
+  transition: color var(--transition);
+  padding: 0.2rem 0.4rem;
+}
+.auth-close:hover { color: var(--gold); }
+.auth-header { text-align: center; margin-bottom: 1.6rem; }
+.auth-glyph {
+  font-size: 2rem; display: block; margin-bottom: 0.5rem;
+  opacity: 0.7;
+}
+.auth-title {
+  font-family: var(--font-display); font-size: 1.35rem;
+  color: var(--cream); font-weight: 600; margin: 0 0 0.35rem;
+}
+.auth-title em { color: var(--gold); font-style: italic; }
+.auth-subtitle {
+  font-family: var(--font-body); font-size: 0.8rem;
+  color: rgba(245,240,232,0.5); margin: 0;
+}
+.auth-providers { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.2rem; }
+.auth-provider-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  width: 100%; padding: 0.7rem 1rem;
+  background: rgba(13,13,13,0.5);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+  color: var(--cream);
+  transition: border-color var(--transition), background var(--transition);
+}
+.auth-provider-btn:hover {
+  border-color: rgba(201,168,76,0.5);
+  background: rgba(201,168,76,0.06);
+}
+.auth-provider-btn:active { transform: scale(0.985); }
+.auth-provider-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.auth-provider-btn:disabled {
+  opacity: 0.5; cursor: not-allowed;
+}
+.auth-divider {
+  display: flex; align-items: center; gap: 0.8rem;
+  margin: 1.1rem 0; color: rgba(245,240,232,0.3);
+  font-family: var(--font-body); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+}
+.auth-email-form { display: flex; flex-direction: column; gap: 0.65rem; }
+.auth-input {
+  width: 100%; padding: 0.7rem 0.9rem;
+  background: rgba(13,13,13,0.5);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 10px;
+  font-family: var(--font-body); font-size: 0.85rem;
+  color: var(--cream); outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  box-sizing: border-box;
+}
+.auth-input::placeholder { color: rgba(245,240,232,0.3); }
+.auth-input:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 2px rgba(201,168,76,0.1);
+}
+.auth-remember {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-family: var(--font-body); font-size: 0.75rem;
+  color: rgba(245,240,232,0.5); cursor: pointer;
+  user-select: none; margin-top: -0.1rem;
+}
+.auth-remember input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 15px; height: 15px; border-radius: 4px;
+  border: 1px solid rgba(201,168,76,0.3);
+  background: rgba(13,13,13,0.5);
+  cursor: pointer; position: relative;
+  transition: border-color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+.auth-remember input[type="checkbox"]:checked {
+  background: var(--gold); border-color: var(--gold);
+}
+.auth-remember input[type="checkbox"]:checked::after {
+  content: ''; position: absolute;
+  left: 4px; top: 1px; width: 5px; height: 9px;
+  border: solid var(--black-near); border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.auth-error {
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: #e07c5a; margin: 0; display: none;
+  padding: 0.4rem 0.6rem;
+  background: rgba(224,124,90,0.08);
+  border-radius: 6px;
+}
+.auth-error.visible { display: block; }
+.auth-success {
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: #6abf8a; margin: 0; display: none;
+  padding: 0.4rem 0.6rem;
+  background: rgba(106,191,138,0.08);
+  border-radius: 6px;
+}
+.auth-success.visible { display: block; }
+.auth-submit-btn {
+  width: 100%; padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border: none; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.88rem; font-weight: 600;
+  color: var(--black-near);
+  transition: opacity var(--transition), transform 0.15s;
+  margin-top: 0.15rem;
+}
+.auth-submit-btn:hover { opacity: 0.9; }
+.auth-submit-btn:active { transform: scale(0.985); }
+.auth-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-submit-btn .btn-spinner-inline {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(13,13,13,0.3);
+  border-top-color: var(--black-near);
+  border-radius: 50%; animation: authSpin 0.6s linear infinite;
+  vertical-align: middle; margin-right: 0.4rem;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+.auth-links {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.2rem;
+}
+.auth-link {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.75rem;
+  color: rgba(245,240,232,0.45);
+  transition: color var(--transition);
+  padding: 0;
+}
+.auth-link:hover { color: var(--gold); }
+.auth-guest-btn {
+  width: 100%; padding: 0.6rem 1rem;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.82rem;
+  color: rgba(245,240,232,0.45);
+  transition: color var(--transition);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.auth-guest-btn:hover { color: var(--cream); }
+.auth-confirm-pw { display: none; }
+.auth-confirm-pw.visible { display: block; }
+
+/* ─── Nav User Menu ───────────────────────────────────────── */
+.nav-actions { display: inline-flex; align-items: center; gap: 0.5rem; }
+.user-menu { position: relative; }
+.user-signin-btn {
+  font-family: var(--font-body); font-size: 0.78rem;
+  font-weight: 500; letter-spacing: 0.04em;
+  color: var(--gold); background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 8px; padding: 0.4rem 0.9rem;
+  cursor: pointer; transition: background var(--transition), border-color var(--transition);
+}
+.user-signin-btn:hover { background: rgba(201,168,76,0.15); border-color: rgba(201,168,76,0.5); }
+.user-avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid rgba(201,168,76,0.3);
+  background: var(--green-deep); cursor: pointer;
+  overflow: hidden; padding: 0;
+  transition: border-color var(--transition);
+  display: none;
+}
+.user-avatar-btn:hover { border-color: var(--gold); }
+.user-avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.user-avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  font-family: var(--font-display); font-size: 0.85rem;
+  color: var(--gold); font-weight: 600;
+}
+.user-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 220px;
+  background: rgba(26,46,26,0.97);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 12px; padding: 1rem;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  z-index: 200; display: none;
+  transform: translateY(-4px); opacity: 0;
+  transition: transform var(--transition), opacity var(--transition);
+}
+.user-dropdown.visible { display: block; transform: translateY(0); opacity: 1; }
+.user-dropdown-name {
+  font-family: var(--font-display); font-size: 0.9rem;
+  color: var(--cream); font-weight: 600; margin: 0;
+}
+.user-dropdown-email {
+  font-family: var(--font-body); font-size: 0.72rem;
+  color: rgba(245,240,232,0.45); margin: 0.15rem 0 0; word-break: break-all;
+}
+.user-dropdown-divider {
+  border: none; height: 1px;
+  background: rgba(201,168,76,0.15); margin: 0.75rem 0;
+}
+.user-dropdown-item {
+  display: block; width: 100%;
+  background: none; border: none; text-align: left;
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: var(--cream); padding: 0.45rem 0.2rem;
+  cursor: pointer; transition: color var(--transition);
+}
+.user-dropdown-item:hover { color: var(--gold); }
+
+/* ─── History Lock State ──────────────────────────────────── */
+.history-toggle.locked { opacity: 0.8; }
+.history-lock {
+  font-size: 0.7rem; margin-right: 0.35rem;
+  filter: grayscale(0.3);
+}
+
+@media (max-width: 640px) {
+  .auth-modal { padding: 1.6rem 1.2rem 1.4rem; }
+  .nav-actions { gap: 0.35rem; }
+  .user-signin-btn { font-size: 0.72rem; padding: 0.35rem 0.7rem; }
+}
 </style>
 </head>
 <body>
 
-<!-- Floating background pieces -->
-<div class="bg-pieces" aria-hidden="true">
-  <span class="bg-piece">♜</span>
-  <span class="bg-piece">♝</span>
-  <span class="bg-piece">♛</span>
-  <span class="bg-piece">♞</span>
-  <span class="bg-piece">♟</span>
-  <span class="bg-piece">♜</span>
-  <span class="bg-piece">♛</span>
-</div>
 
 <!-- Nav -->
 <nav id="nav" role="navigation" aria-label="Site navigation">
@@ -1367,7 +1741,22 @@ body::before {
     <a href="index.html" class="nav-logo">ChessSight<span class="ai">.ai</span></a>
     <span class="beta-badge">Beta</span>
   </div>
-  <a href="index.html" class="nav-btn">← Back to Home</a>
+  <div class="nav-actions">
+    <a href="index.html" class="nav-btn">← Home</a>
+    <div class="user-menu" id="userMenu">
+      <button class="user-signin-btn" id="navSignInBtn" type="button">Sign In</button>
+      <button class="user-avatar-btn" id="userAvatarBtn" type="button" aria-label="Account menu">
+        <img class="user-avatar" id="userAvatar" src="" alt="Profile">
+        <span class="user-avatar-fallback" id="userAvatarFallback">?</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown" role="menu">
+        <p class="user-dropdown-name" id="dropdownName"></p>
+        <p class="user-dropdown-email" id="dropdownEmail"></p>
+        <hr class="user-dropdown-divider">
+        <button class="user-dropdown-item" id="navSignOutBtn" type="button" role="menuitem">Sign Out</button>
+      </div>
+    </div>
+  </div>
 </nav>
 
 <!-- Main page -->
@@ -1419,6 +1808,9 @@ body::before {
         <span class="spin-label">Reading the board…</span>
       </span>
     </button>
+    <div class="tool-actions" style="justify-content:center;margin-top:0.85rem;">
+      <button class="board-ctrl-btn" id="sampleBoardBtn" type="button">Try sample board</button>
+    </div>
 
     <!-- Checker divider (shown with results) -->
     <div class="chess-checker-divider" id="checkerDivider" style="display:none" aria-hidden="true"></div>
@@ -1490,8 +1882,12 @@ body::before {
         <div class="board-header">
           <p class="board-eyebrow">Board Position</p>
           <div class="board-controls">
+            <span class="board-status-pill" id="boardStatusPill">Original scan</span>
             <button class="board-ctrl-btn" id="toggleStmBtn" type="button" aria-label="Toggle side to move"><span id="toggleStmLabel">⇄ White to move</span></button>
             <button class="board-ctrl-btn" id="flipBoardBtn" type="button" aria-label="Flip board">⟳ Flip</button>
+            <button class="board-ctrl-btn" id="undoBoardBtn" type="button" disabled>Undo</button>
+            <button class="board-ctrl-btn" id="clearBoardBtn" type="button">Clear</button>
+            <button class="board-ctrl-btn" id="startBoardBtn" type="button">Start</button>
             <button class="board-ctrl-btn board-ctrl-btn--primary" id="reanalyseBtn" type="button">Re-analyse</button>
           </div>
         </div>
@@ -1501,14 +1897,14 @@ body::before {
           <!-- Left sidebar: white pieces, 2 columns -->
           <div class="piece-sidebar piece-sidebar--left" id="pieceSidebarLeft" aria-label="White pieces">
             <div class="piece-col">
-              <span class="sb-piece piece-white" draggable="true" data-piece="K" title="White King">♚</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="Q" title="White Queen">♛</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="R" title="White Rook">♜</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="K" title="White King">♔︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="Q" title="White Queen">♕︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="R" title="White Rook">♖︎</span>
             </div>
             <div class="piece-col">
-              <span class="sb-piece piece-white" draggable="true" data-piece="B" title="White Bishop">♝</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="N" title="White Knight">♞</span>
-              <span class="sb-piece piece-white" draggable="true" data-piece="P" title="White Pawn">♟</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="B" title="White Bishop">♗︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="N" title="White Knight">♘︎</span>
+              <span class="sb-piece piece-white" draggable="true" data-piece="P" title="White Pawn">♙︎</span>
             </div>
           </div>
 
@@ -1520,20 +1916,36 @@ body::before {
           <!-- Right sidebar: black pieces, 2 columns -->
           <div class="piece-sidebar piece-sidebar--right" id="pieceSidebarRight" aria-label="Black pieces">
             <div class="piece-col">
-              <span class="sb-piece piece-black" draggable="true" data-piece="k" title="Black King">♚</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="q" title="Black Queen">♛</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="r" title="Black Rook">♜</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="k" title="Black King">♚︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="q" title="Black Queen">♛︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="r" title="Black Rook">♜︎</span>
             </div>
             <div class="piece-col">
-              <span class="sb-piece piece-black" draggable="true" data-piece="b" title="Black Bishop">♝</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="n" title="Black Knight">♞</span>
-              <span class="sb-piece piece-black" draggable="true" data-piece="p" title="Black Pawn">♟</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="b" title="Black Bishop">♝︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="n" title="Black Knight">♞︎</span>
+              <span class="sb-piece piece-black" draggable="true" data-piece="p" title="Black Pawn">♟︎</span>
             </div>
           </div>
 
         </div><!-- /.board-layout -->
 
         <p class="board-hint">Drag pieces to adjust · Drop onto a sidebar to remove</p>
+
+        <div class="board-tools" id="boardTools">
+          <div class="fen-row">
+            <textarea class="fen-input" id="fenInput" rows="2" spellcheck="false" aria-label="FEN position"></textarea>
+            <button class="board-ctrl-btn board-ctrl-btn--primary" id="loadFenBtn" type="button">Load FEN</button>
+          </div>
+          <div class="tool-actions">
+            <button class="board-ctrl-btn" id="copyFenBtn" type="button">Copy FEN</button>
+            <button class="board-ctrl-btn" id="copyPgnBtn" type="button">Copy PGN</button>
+            <button class="board-ctrl-btn" id="demoBoardBtn" type="button">Sample</button>
+            <a class="board-ctrl-btn" id="positionFeedbackBtn" href="mailto:chesssight@gmail.com" style="text-decoration:none;">Report scan</a>
+          </div>
+          <div class="validation-card" id="validationCard" role="status">
+            <span id="validationText"></span>
+          </div>
+        </div>
 
         <p class="board-legend" id="boardLegend">
           <span class="legend-icon" aria-hidden="true">⚠</span>
@@ -1547,6 +1959,12 @@ body::before {
           <a class="quick-action" id="chesscomLink" target="_blank" rel="noopener noreferrer" href="#">
             <span class="qa-icon" aria-hidden="true">♛</span> Open in Chess.com
           </a>
+          <button class="quick-action" id="copyLichessBtn" type="button">
+            <span class="qa-icon" aria-hidden="true">↗</span> Copy Lichess
+          </button>
+          <button class="quick-action" id="copyChesscomBtn" type="button">
+            <span class="qa-icon" aria-hidden="true">↗</span> Copy Chess.com
+          </button>
         </div>
 
       </div><!-- /#boardBlock -->
@@ -1912,6 +2330,21 @@ HARD RULES — NEVER VIOLATE THESE
   const boardLegend    = document.getElementById('boardLegend');
   const lichessLink    = document.getElementById('lichessLink');
   const chesscomLink   = document.getElementById('chesscomLink');
+  const boardStatusPill = document.getElementById('boardStatusPill');
+  const fenInput       = document.getElementById('fenInput');
+  const loadFenBtn     = document.getElementById('loadFenBtn');
+  const copyFenBtn     = document.getElementById('copyFenBtn');
+  const copyPgnBtn     = document.getElementById('copyPgnBtn');
+  const copyLichessBtn = document.getElementById('copyLichessBtn');
+  const copyChesscomBtn = document.getElementById('copyChesscomBtn');
+  const clearBoardBtn  = document.getElementById('clearBoardBtn');
+  const startBoardBtn  = document.getElementById('startBoardBtn');
+  const undoBoardBtn   = document.getElementById('undoBoardBtn');
+  const demoBoardBtn   = document.getElementById('demoBoardBtn');
+  const sampleBoardBtn = document.getElementById('sampleBoardBtn');
+  const positionFeedbackBtn = document.getElementById('positionFeedbackBtn');
+  const validationCard = document.getElementById('validationCard');
+  const validationText = document.getElementById('validationText');
   const fenCard        = downloadRow.children[0];
   const pgnCard        = downloadRow.children[1];
 
@@ -2149,7 +2582,7 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     const castling =
       result.castling && result.castling !== 'unknown' && result.castling !== ''
         ? result.castling
-        : 'KQkq';
+        : '-';
 
     const enPassant =
       result.en_passant && result.en_passant !== 'unknown' && result.en_passant !== ''
@@ -2189,6 +2622,68 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     }
 
     return headers + '\n\n' + movetext + '\n';
+  }
+
+  function normalizeFen(fen, clearIrreliableRights = false) {
+    const parts = (fen || '').trim().split(/\s+/);
+    while (parts.length < 6) {
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+    }
+
+    parts[1] = parts[1] === 'b' ? 'b' : 'w';
+    if (clearIrreliableRights) {
+      parts[2] = '-';
+      parts[3] = '-';
+    } else {
+      parts[2] = /^[KQkq]+$/.test(parts[2] || '')
+        ? 'KQkq'.split('').filter(ch => parts[2].includes(ch)).join('')
+        : '-';
+      if (!parts[2]) parts[2] = '-';
+      parts[3] = /^([a-h][36]|-)$/.test(parts[3] || '') ? parts[3] : '-';
+    }
+    parts[4] = /^\d+$/.test(parts[4] || '') ? parts[4] : '0';
+    parts[5] = /^[1-9]\d*$/.test(parts[5] || '') ? parts[5] : '1';
+    return parts.slice(0, 6).join(' ');
+  }
+
+  function isLoadableFen(fen) {
+    const parts = (fen || '').trim().split(/\s+/);
+    if (!parts[0] || !/^([rnbqkpRNBQKP1-8]+\/){7}[rnbqkpRNBQKP1-8]+$/.test(parts[0])) return false;
+    return parts[0].split('/').every(row => {
+      let count = 0;
+      for (const ch of row) count += /\d/.test(ch) ? parseInt(ch, 10) : 1;
+      return count === 8;
+    });
+  }
+
+  function copyText(text, button) {
+    const value = text || '';
+    const finish = ok => {
+      if (!button) return;
+      const old = button.textContent;
+      button.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(() => { button.textContent = old; }, 1200);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(() => finish(true)).catch(() => finish(false));
+      return;
+    }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      finish(ok);
+    } catch (_) {
+      finish(false);
+    }
   }
 
   /* ── Error renderer ──────────────────────────────────── */
@@ -2528,18 +3023,23 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   /* ── Chess board ─────────────────────────────────────────── */
   // Use filled glyphs for both sides; colour differentiates white vs black via CSS.
   const PIECE_UNICODE = {
-    'K':'♚','Q':'♛','R':'♜','B':'♝','N':'♞','P':'♟',
-    'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'
+    'K':'♔︎','Q':'♕︎','R':'♖︎','B':'♗︎','N':'♘︎','P':'♙︎',
+    'k':'♚︎','q':'♛︎','r':'♜︎','b':'♝︎','n':'♞︎','p':'♟︎'
   };
 
   let cbState        = Array(8).fill(null).map(() => Array(8).fill(null));
   let cbFlipped      = false;
-  let cbFenMeta      = 'w KQkq - 0 1';
+  let cbFenMeta      = 'w - - 0 1';
   let cbReTimer      = null;
   let originalFen    = null;
   let aiFeedbackHtml = '';
   let aiVerdict      = null;
   let lastEngScore   = null;  // {scoreCp, scoreMate, stm}
+  let boardUndoStack = [];
+  let tapSelection   = null;
+
+  const START_FEN  = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const SAMPLE_FEN = 'r2q1rk1/pp2bppp/2n1pn2/2bp4/3P4/2NBPN2/PPQ2PPP/R1B2RK1 w - - 0 1';
 
   function setEvaluationFromAi(verdict) {
     if (verdict === 'white')      evaluationLine.innerHTML = "Advantage <span class='eval-side white'>White</span>";
@@ -2613,7 +3113,100 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   }
 
   function getBoardFen() {
-    return stateToFenPlacement(cbState) + ' ' + cbFenMeta;
+    return normalizeFen(stateToFenPlacement(cbState) + ' ' + cbFenMeta);
+  }
+
+  function getEditedBoardFen() {
+    return normalizeFen(stateToFenPlacement(cbState) + ' ' + cbFenMeta, true);
+  }
+
+  function updateUndoButton() {
+    if (undoBoardBtn) undoBoardBtn.disabled = boardUndoStack.length === 0;
+  }
+
+  function recordBoardUndo() {
+    boardUndoStack.push(getBoardFen());
+    if (boardUndoStack.length > 30) boardUndoStack.shift();
+    updateUndoButton();
+  }
+
+  function validateCurrentBoard() {
+    const flat = cbState.flat();
+    const issues = [];
+    const whiteKings = flat.filter(p => p === 'K').length;
+    const blackKings = flat.filter(p => p === 'k').length;
+    const whitePawns = flat.filter(p => p === 'P').length;
+    const blackPawns = flat.filter(p => p === 'p').length;
+    const pieceCount = flat.filter(Boolean).length;
+
+    if (whiteKings !== 1) issues.push('White must have exactly one king.');
+    if (blackKings !== 1) issues.push('Black must have exactly one king.');
+    if (whitePawns > 8) issues.push('White has more than eight pawns.');
+    if (blackPawns > 8) issues.push('Black has more than eight pawns.');
+    if (pieceCount > 32) issues.push('The board has more than 32 pieces.');
+    for (let c = 0; c < 8; c++) {
+      if (cbState[0][c] === 'P' || cbState[7][c] === 'P' || cbState[0][c] === 'p' || cbState[7][c] === 'p') {
+        issues.push('Pawns cannot sit on the first or eighth rank.');
+        break;
+      }
+    }
+
+    return issues;
+  }
+
+  function renderBoardValidation() {
+    if (!validationCard || !validationText) return;
+    const issues = validateCurrentBoard();
+    validationCard.classList.add('visible');
+    validationCard.classList.toggle('valid', issues.length === 0);
+    validationText.textContent = issues.length
+      ? issues.join(' ')
+      : 'Position looks structurally valid.';
+  }
+
+  function setBoardStatus(fen) {
+    if (!boardStatusPill) return;
+    const edited = originalFen && normalizeFen(fen) !== normalizeFen(originalFen);
+    boardStatusPill.textContent = edited ? 'User edited' : 'Original scan';
+    boardStatusPill.classList.toggle('edited', !!edited);
+  }
+
+  function syncBoardOutputs(fen, options = {}) {
+    fen = normalizeFen(fen);
+    const pgn = buildPGN(fen, null);
+
+    if (fenInput) fenInput.value = fen;
+    if (options.downloads !== false && fenCard) {
+      fenCard.onclick   = () => triggerDownload(fen, 'chessight-position.fen', 'text/plain');
+      fenCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fenCard.click(); } };
+    }
+    if (options.downloads !== false && pgnCard) {
+      pgnCard.onclick   = () => triggerDownload(pgn, 'chessight-position.pgn', 'application/x-chess-pgn');
+      pgnCard.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pgnCard.click(); } };
+    }
+    updateQuickActions(fen);
+    updateShareUrl(fen);
+    setBoardStatus(fen);
+    renderBoardValidation();
+
+    if (positionFeedbackBtn) {
+      positionFeedbackBtn.href =
+        'mailto:chesssight@gmail.com?subject=' + encodeURIComponent('ChessSight scan feedback') +
+        '&body=' + encodeURIComponent('FEN:\n' + fen + '\n\nWhat looked wrong?\n');
+    }
+  }
+
+  function loadBoardFen(fen, options = {}) {
+    const fullFen = normalizeFen(fen, options.clearRights);
+    const parts = fullFen.split(/\s+/);
+    if (options.recordUndo) recordBoardUndo();
+    cbState = fenToState(parts[0]);
+    cbFenMeta = parts.slice(1).join(' ');
+    tapSelection = null;
+    renderChessBoard();
+    updateStmButton();
+    syncBoardOutputs(fullFen);
+    if (options.reanalyse !== false) scheduleBoardReanalyse();
   }
 
   function squareNameToRC(sq) {
@@ -2626,6 +3219,36 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   function rcToSquareName(r, c) {
     return String.fromCharCode(97 + c) + (8 - r);
+  }
+
+  function commitBoardChange(next) {
+    recordBoardUndo();
+    next();
+    tapSelection = null;
+    renderChessBoard();
+    scheduleBoardReanalyse();
+  }
+
+  function handleBoardSquareTap(row, col) {
+    const piece = cbState[row][col];
+
+    if (tapSelection) {
+      commitBoardChange(() => {
+        if (!tapSelection.fromSidebar) cbState[tapSelection.row][tapSelection.col] = null;
+        cbState[row][col] = tapSelection.piece;
+      });
+      return;
+    }
+
+    if (piece) {
+      tapSelection = { piece, row, col, fromSidebar: false };
+      renderChessBoard();
+    }
+  }
+
+  function handleSidebarPieceTap(piece) {
+    tapSelection = { piece, fromSidebar: true };
+    renderChessBoard();
   }
 
   function renderChessBoard() {
@@ -2645,6 +3268,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         const isLight = (r + c) % 2 === 0;
         const sq      = document.createElement('div');
         sq.className   = 'board-square ' + (isLight ? 'sq-light' : 'sq-dark');
+        if (tapSelection && !tapSelection.fromSidebar && tapSelection.row === r && tapSelection.col === c) {
+          sq.classList.add('tap-selected');
+        }
         if (uncertainSet.has(rcToSquareName(r, c))) {
           sq.classList.add('sq-uncertain');
           sq.setAttribute('aria-label', rcToSquareName(r, c) + ' — uncertain');
@@ -2677,10 +3303,12 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
           pe.dataset.fromCol = c;
           pe.addEventListener('dragstart', onBoardPieceDragStart);
           pe.addEventListener('dragend',   onBoardPieceDragEnd);
+          pe.addEventListener('click', e => { e.stopPropagation(); handleBoardSquareTap(r, c); });
           attachTouchDrag(pe, false);
           sq.appendChild(pe);
         }
 
+        sq.addEventListener('click', () => handleBoardSquareTap(r, c));
         sq.addEventListener('dragover',  onSquareDragOver);
         sq.addEventListener('dragleave', onSquareDragLeave);
         sq.addEventListener('drop',      onSquareDrop);
@@ -2771,9 +3399,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         if (sq) {
           const toRow = parseInt(sq.dataset.row, 10);
           const toCol = parseInt(sq.dataset.col, 10);
+          recordBoardUndo();
           if (!dragData.fromSidebar) cbState[dragData.fromRow][dragData.fromCol] = null;
           cbState[toRow][toCol] = dragData.piece;
           dragData = null;
+          tapSelection = null;
           cleanup();
           renderChessBoard();
           scheduleBoardReanalyse();
@@ -2781,8 +3411,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         }
         const sb = under.closest('.piece-sidebar');
         if (sb && !dragData.fromSidebar) {
+          recordBoardUndo();
           cbState[dragData.fromRow][dragData.fromCol] = null;
           dragData = null;
+          tapSelection = null;
           cleanup();
           renderChessBoard();
           scheduleBoardReanalyse();
@@ -2827,11 +3459,13 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     if (!dragData) return;
     const toRow = parseInt(e.currentTarget.dataset.row, 10);
     const toCol = parseInt(e.currentTarget.dataset.col, 10);
+    recordBoardUndo();
     if (!dragData.fromSidebar) {
       cbState[dragData.fromRow][dragData.fromCol] = null;
     }
     cbState[toRow][toCol] = dragData.piece;
     dragData = null;
+    tapSelection = null;
     renderChessBoard();
     scheduleBoardReanalyse();
   }
@@ -2843,6 +3477,13 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
         e.dataTransfer.effectAllowed = 'copy';
       });
       attachTouchDrag(pe, true);
+      if (pe.dataset.clickAttached !== '1') {
+        pe.dataset.clickAttached = '1';
+        pe.addEventListener('click', e => {
+          e.stopPropagation();
+          handleSidebarPieceTap(e.currentTarget.dataset.piece);
+        });
+      }
     });
 
     sidebarEl.addEventListener('dragover', e => {
@@ -2856,8 +3497,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
       e.preventDefault();
       sidebarEl.classList.remove('drag-over');
       if (dragData && !dragData.fromSidebar) {
+        recordBoardUndo();
         cbState[dragData.fromRow][dragData.fromCol] = null;
         dragData = null;
+        tapSelection = null;
         renderChessBoard();
         scheduleBoardReanalyse();
       }
@@ -2903,22 +3546,34 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     clearTimeout(cbReTimer);
     clearTimeout(geminiReTimer);
     lastEngScore = null;
+
+    const fen = getEditedBoardFen();
+    cbFenMeta = fen.split(/\s+/).slice(1).join(' ');
+
+    // Immediately sync FEN/PGN downloads and external links to current position.
+    syncBoardOutputs(fen);
+
     refreshDerivedDisplays();
-    cbReTimer     = setTimeout(() => startEngine(getBoardFen()), 1200);
-    geminiReTimer = setTimeout(() => runGeminiReanalysis(getBoardFen()), 1800);
+    cbReTimer     = setTimeout(() => startEngine(fen), 1200);
+    geminiReTimer = setTimeout(() => runGeminiReanalysis(fen), 1800);
   }
 
   function showBoard(fen) {
+    fen = normalizeFen(fen);
     const parts = fen.split(' ');
     cbState     = fenToState(parts[0]);
-    cbFenMeta   = parts.slice(1).join(' ') || 'w KQkq - 0 1';
+    cbFenMeta   = parts.slice(1).join(' ') || 'w - - 0 1';
     cbFlipped   = false;
     originalFen = fen;
+    tapSelection = null;
+    boardUndoStack = [];
     boardBlock.style.display = '';
     renderChessBoard();
     initSidebarDrag(pieceSidebarL);
     initSidebarDrag(pieceSidebarR);
     updateStmButton();
+    updateUndoButton();
+    syncBoardOutputs(fen, { downloads: false });
   }
 
   function hideBoard() {
@@ -2937,12 +3592,71 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   });
 
   document.getElementById('toggleStmBtn').addEventListener('click', () => {
+    recordBoardUndo();
     const parts = cbFenMeta.split(' ');
     parts[0] = parts[0] === 'w' ? 'b' : 'w';
     if (parts.length >= 3) parts[2] = '-';   // en-passant invalid after toggle
     cbFenMeta = parts.join(' ');
     scheduleBoardReanalyse();
   });
+
+  if (clearBoardBtn) {
+    clearBoardBtn.addEventListener('click', () => {
+      loadBoardFen('8/8/8/8/8/8/8/8 w - - 0 1', { recordUndo: true, clearRights: true });
+    });
+  }
+
+  if (startBoardBtn) {
+    startBoardBtn.addEventListener('click', () => {
+      loadBoardFen(START_FEN, { recordUndo: true });
+    });
+  }
+
+  function loadSampleBoard() {
+    showResults();
+    feedbackBlock.style.display = '';
+    downloadRow.style.display = '';
+    confidenceBar.style.display = 'none';
+    aiVerdict = 'equal';
+    aiFeedbackHtml = 'Sample position loaded. Adjust pieces or run a fresh scan when ready.';
+    setEvaluationFromAi(aiVerdict);
+    complexityPill.textContent = 'Sample';
+    complexityPill.className = 'complexity-pill quiet';
+    showBoard(SAMPLE_FEN);
+    refreshDerivedDisplays();
+    startEngine(SAMPLE_FEN);
+  }
+
+  if (demoBoardBtn) demoBoardBtn.addEventListener('click', loadSampleBoard);
+  if (sampleBoardBtn) sampleBoardBtn.addEventListener('click', loadSampleBoard);
+
+  if (undoBoardBtn) {
+    undoBoardBtn.addEventListener('click', () => {
+      const prev = boardUndoStack.pop();
+      updateUndoButton();
+      if (prev) loadBoardFen(prev, { reanalyse: true });
+    });
+  }
+
+  if (loadFenBtn) {
+    loadFenBtn.addEventListener('click', () => {
+      const fen = fenInput ? fenInput.value : '';
+      if (!isLoadableFen(fen)) {
+        if (validationCard && validationText) {
+          validationCard.classList.add('visible');
+          validationCard.classList.remove('valid');
+          validationText.textContent = 'That FEN is not loadable. Check that every rank adds up to eight squares.';
+        }
+        return;
+      }
+      loadBoardFen(fen, { recordUndo: true });
+    });
+  }
+
+  if (copyFenBtn) copyFenBtn.addEventListener('click', () => copyText(getBoardFen(), copyFenBtn));
+  if (copyPgnBtn) copyPgnBtn.addEventListener('click', () => copyText(buildPGN(getBoardFen(), null), copyPgnBtn));
+  if (copyLichessBtn) copyLichessBtn.addEventListener('click', () => copyText(lichessLink.href, copyLichessBtn));
+  if (copyChesscomBtn) copyChesscomBtn.addEventListener('click', () => copyText(chesscomLink.href, copyChesscomBtn));
 
   /* ── Analyse click ───────────────────────────────────── */
   analyseBtn.addEventListener('click', async () => {
@@ -3167,9 +3881,10 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   /* ── Quick-action buttons ────────────────────────────── */
   function updateQuickActions(fen) {
     if (!fen || !lichessLink || !chesscomLink) return;
-    const enc = encodeURIComponent(fen);
-    lichessLink.href  = 'https://lichess.org/analysis/' + enc;
-    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + enc;
+    const cleanFen = normalizeFen(fen);
+    const lichessFen = cleanFen.replace(/\s+/g, '_');
+    lichessLink.href  = 'https://lichess.org/analysis/standard/' + lichessFen;
+    chesscomLink.href = 'https://www.chess.com/analysis?fen=' + encodeURIComponent(cleanFen);
   }
 
   /* ── Share-via-URL ───────────────────────────────────── */
@@ -3208,9 +3923,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     // Normalise to a 6-field FEN for the engine.
     const parts = sharedFen.trim().split(/\s+/);
     while (parts.length < 6) {
-      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
     }
-    const fullFen = parts.join(' ');
+    const fullFen = normalizeFen(parts.join(' '));
 
     lowConfidenceSquares = [];
     aiVerdict      = 'equal';
@@ -3283,6 +3998,7 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   }
 
   async function pushHistoryEntry({ fen, opening, file }) {
+    if (window.ChessSightAuth && !window.ChessSightAuth.isAuthenticated()) return;
     const thumb = await makeThumbnail(file);
     const entry = {
       thumb:   thumb || null,
@@ -3391,9 +4107,9 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
     // Fill in any missing FEN fields.
     const parts = entry.fen.trim().split(/\s+/);
     while (parts.length < 6) {
-      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? 'KQkq' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
+      parts.push(parts.length === 1 ? 'w' : parts.length === 2 ? '-' : parts.length === 3 ? '-' : parts.length === 4 ? '0' : '1');
     }
-    const fullFen = parts.join(' ');
+    const fullFen = normalizeFen(parts.join(' '));
 
     lowConfidenceSquares = [];
     aiVerdict      = 'equal';
@@ -3420,6 +4136,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   if (historyToggle && historyBlock) {
     historyToggle.addEventListener('click', () => {
+      if (window.ChessSightAuth && !window.ChessSightAuth.isAuthenticated()) {
+        window.ChessSightAuth.setPendingHistoryOpen();
+        window.ChessSightAuth.showAuthModal();
+        return;
+      }
       const open = historyBlock.classList.toggle('open');
       historyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
@@ -3428,6 +4149,447 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   /* ── Init from share URL ─────────────────────────────── */
   loadFromShareUrl();
+})();
+</script>
+
+<!-- ── Auth Modal ── -->
+<div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="auth-modal">
+    <button class="auth-close" id="authClose" type="button" aria-label="Close">&times;</button>
+    <div class="auth-header">
+      <span class="auth-glyph" aria-hidden="true">&#9822;</span>
+      <h2 class="auth-title">Sign in to <em>ChessSight</em></h2>
+      <p class="auth-subtitle">Save your analysis history across sessions</p>
+    </div>
+    <div class="auth-providers">
+      <button class="auth-provider-btn" id="googleSignIn" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <button class="auth-provider-btn" id="appleSignIn" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.71 9.27c1.26.06 2.14.7 2.88.74.97-.2 1.9-.76 2.94-.69 1.24.1 2.18.58 2.8 1.46-2.56 1.54-1.95 4.92.58 5.86-.46 1.21-.68 1.76-1.28 2.83-.61 1.06-.86 1.32-1.58 1.81zM12.05 9.19c-.15-2.34 1.74-4.36 3.95-4.55.3 2.58-2.29 4.5-3.95 4.55z" fill="#f5f0e8"/></svg>
+        Continue with Apple
+      </button>
+    </div>
+    <div class="auth-divider">or</div>
+    <form class="auth-email-form" id="authEmailForm" autocomplete="on">
+      <input class="auth-input" id="authEmail" type="email" name="email" placeholder="your@email.com" autocomplete="email" required>
+      <input class="auth-input" id="authPassword" type="password" name="password" placeholder="Password" autocomplete="current-password" required minlength="6">
+      <input class="auth-input auth-confirm-pw" id="authConfirmPw" type="password" placeholder="Confirm password" autocomplete="new-password" minlength="6">
+      <label class="auth-remember">
+        <input type="checkbox" id="authRemember" checked>
+        Remember me
+      </label>
+      <p class="auth-error" id="authError" role="alert"></p>
+      <p class="auth-success" id="authSuccess" role="status"></p>
+      <button class="auth-submit-btn" id="authSubmit" type="submit">
+        <span id="authSubmitText">Sign In</span>
+      </button>
+      <div class="auth-links">
+        <button class="auth-link" id="authToggleMode" type="button">Don't have an account? <strong>Create one</strong></button>
+        <button class="auth-link" id="authForgot" type="button">Forgot password?</button>
+      </div>
+    </form>
+    <div class="auth-divider">or</div>
+    <button class="auth-guest-btn" id="authGuest" type="button">Continue as Guest</button>
+  </div>
+</div>
+
+<!-- ── Cookie / storage consent banner ── -->
+<div id="consentBanner" class="consent-banner" role="dialog" aria-label="Cookie and storage consent" style="display:none">
+  <div class="consent-inner">
+    <div class="consent-text">
+      <p class="consent-title">Your privacy, your choice</p>
+      <p class="consent-body">ChessSight.ai stores your recent analyses in your browser's local storage to improve your experience, and loads Google Fonts. No tracking or advertising cookies are used. See our <a href="privacy.html">Privacy Policy</a> for full details.</p>
+    </div>
+    <div class="consent-actions">
+      <button class="consent-btn consent-btn--decline" id="consentDecline" type="button">Decline</button>
+      <button class="consent-btn consent-btn--accept" id="consentAccept" type="button">Accept All</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var KEY    = 'chesssight_consent';
+  var banner = document.getElementById('consentBanner');
+  if (!banner || localStorage.getItem(KEY)) return;
+  banner.style.display = '';
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { banner.classList.add('visible'); });
+  });
+  function dismiss(val) {
+    localStorage.setItem(KEY, val);
+    banner.classList.remove('visible');
+    setTimeout(function () { banner.style.display = 'none'; }, 450);
+  }
+  document.getElementById('consentAccept').addEventListener('click', function () { dismiss('accepted'); });
+  document.getElementById('consentDecline').addEventListener('click', function () { dismiss('declined'); });
+}());
+</script>
+
+<!-- ── Firebase Init + Auth Module ── -->
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCFSp90LymfpDa3yt4gkBFHVl_oNb0PUWg",
+  authDomain: "chesssight.firebaseapp.com",
+  projectId: "chesssight"
+});
+
+window.ChessSightAuth = (function () {
+  'use strict';
+
+  var auth = firebase.auth();
+  var currentUser = null;
+  var isGuest = false;
+  var listeners = [];
+  var authReady = false;
+  var pendingHistoryOpen = false;
+
+  // ── DOM refs ──
+  var overlay       = document.getElementById('authOverlay');
+  var closeBtn      = document.getElementById('authClose');
+  var googleBtn     = document.getElementById('googleSignIn');
+  var appleBtn      = document.getElementById('appleSignIn');
+  var emailForm     = document.getElementById('authEmailForm');
+  var emailInput    = document.getElementById('authEmail');
+  var passwordInput = document.getElementById('authPassword');
+  var confirmPwEl   = document.getElementById('authConfirmPw');
+  var rememberCheck = document.getElementById('authRemember');
+  var errorEl       = document.getElementById('authError');
+  var successEl     = document.getElementById('authSuccess');
+  var submitBtn     = document.getElementById('authSubmit');
+  var submitText    = document.getElementById('authSubmitText');
+  var toggleModeBtn = document.getElementById('authToggleMode');
+  var forgotBtn     = document.getElementById('authForgot');
+  var guestBtn      = document.getElementById('authGuest');
+  var navSignInBtn  = document.getElementById('navSignInBtn');
+  var avatarBtn     = document.getElementById('userAvatarBtn');
+  var avatarImg     = document.getElementById('userAvatar');
+  var avatarFallback= document.getElementById('userAvatarFallback');
+  var dropdown      = document.getElementById('userDropdown');
+  var dropdownName  = document.getElementById('dropdownName');
+  var dropdownEmail = document.getElementById('dropdownEmail');
+  var signOutBtn    = document.getElementById('navSignOutBtn');
+
+  var mode = 'signin'; // 'signin' | 'register' | 'forgot'
+
+  // ── Error messages ──
+  var ERROR_MAP = {
+    'auth/user-not-found':        'No account found with that email.',
+    'auth/wrong-password':        'Incorrect password.',
+    'auth/invalid-credential':    'Invalid email or password.',
+    'auth/email-already-in-use':  'An account with that email already exists.',
+    'auth/weak-password':         'Password must be at least 6 characters.',
+    'auth/too-many-requests':     'Too many attempts. Please try again later.',
+    'auth/popup-blocked':         'Popup was blocked. Please allow popups for this site.',
+    'auth/invalid-email':         'Please enter a valid email address.',
+    'auth/network-request-failed':'Network error. Check your internet connection.'
+  };
+
+  function friendlyError(err) {
+    return ERROR_MAP[err.code] || err.message || 'Something went wrong. Please try again.';
+  }
+
+  // ── Modal control ──
+  function showAuthModal() {
+    setMode('signin');
+    clearMessages();
+    if (emailForm) emailForm.reset();
+    if (rememberCheck) rememberCheck.checked = true;
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { if (emailInput) emailInput.focus(); }, 350);
+  }
+
+  function hideAuthModal() {
+    overlay.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  function clearMessages() {
+    if (errorEl)   { errorEl.textContent = ''; errorEl.classList.remove('visible'); }
+    if (successEl) { successEl.textContent = ''; successEl.classList.remove('visible'); }
+  }
+
+  function showError(msg) {
+    clearMessages();
+    if (errorEl) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
+  }
+
+  function showSuccess(msg) {
+    clearMessages();
+    if (successEl) { successEl.textContent = msg; successEl.classList.add('visible'); }
+  }
+
+  function setLoading(btn, loading) {
+    if (!btn) return;
+    btn.disabled = loading;
+    if (btn === submitBtn && submitText) {
+      if (loading) {
+        submitText.innerHTML = '<span class="btn-spinner-inline"></span>' + submitText.textContent;
+      } else {
+        submitText.textContent = mode === 'register' ? 'Create Account' : mode === 'forgot' ? 'Send Reset Link' : 'Sign In';
+      }
+    }
+  }
+
+  // ── Mode switching ──
+  function setMode(newMode) {
+    mode = newMode;
+    clearMessages();
+    if (confirmPwEl) confirmPwEl.classList.toggle('visible', mode === 'register');
+    if (submitText) {
+      submitText.textContent = mode === 'register' ? 'Create Account' : mode === 'forgot' ? 'Send Reset Link' : 'Sign In';
+    }
+    if (passwordInput) passwordInput.style.display = mode === 'forgot' ? 'none' : '';
+    if (confirmPwEl) confirmPwEl.style.display = mode === 'register' ? '' : 'none';
+    if (forgotBtn) forgotBtn.style.display = mode === 'forgot' ? 'none' : '';
+    if (toggleModeBtn) {
+      if (mode === 'forgot') {
+        toggleModeBtn.innerHTML = '&larr; Back to <strong>Sign In</strong>';
+      } else if (mode === 'register') {
+        toggleModeBtn.innerHTML = 'Already have an account? <strong>Sign In</strong>';
+      } else {
+        toggleModeBtn.innerHTML = "Don't have an account? <strong>Create one</strong>";
+      }
+    }
+    if (passwordInput) {
+      passwordInput.autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+    }
+  }
+
+  // ── Auth state observer ──
+  auth.onAuthStateChanged(function (user) {
+    currentUser = user;
+    if (user && !user.isAnonymous) {
+      isGuest = false;
+    }
+    authReady = true;
+    updateNavUI();
+    updateHistoryLockState();
+    listeners.forEach(function (fn) { fn(user); });
+
+    if (user && !user.isAnonymous && pendingHistoryOpen) {
+      pendingHistoryOpen = false;
+      var hBlock = document.querySelector('.history-block');
+      var hToggle = document.querySelector('.history-toggle');
+      if (hBlock && !hBlock.classList.contains('open')) {
+        hBlock.classList.add('open');
+        if (hToggle) hToggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+  });
+
+  // Check for redirect result on page load
+  auth.getRedirectResult().then(function (result) {
+    if (result && result.user) {
+      hideAuthModal();
+    }
+  }).catch(function () {});
+
+  // ── Nav UI ──
+  function updateNavUI() {
+    if (currentUser && !currentUser.isAnonymous) {
+      if (navSignInBtn) navSignInBtn.style.display = 'none';
+      if (avatarBtn) avatarBtn.style.display = '';
+      if (currentUser.photoURL) {
+        if (avatarImg)     { avatarImg.src = currentUser.photoURL; avatarImg.style.display = ''; }
+        if (avatarFallback) avatarFallback.style.display = 'none';
+      } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarFallback) {
+          avatarFallback.style.display = '';
+          avatarFallback.textContent = ((currentUser.displayName || currentUser.email || '?')[0] || '?').toUpperCase();
+        }
+      }
+      if (dropdownName)  dropdownName.textContent = currentUser.displayName || 'Player';
+      if (dropdownEmail) dropdownEmail.textContent = currentUser.email || '';
+    } else {
+      if (navSignInBtn)  navSignInBtn.style.display = '';
+      if (avatarBtn)     avatarBtn.style.display = 'none';
+      if (dropdown)      dropdown.classList.remove('visible');
+    }
+  }
+
+  // ── History lock ──
+  function updateHistoryLockState() {
+    var hToggle = document.querySelector('.history-toggle');
+    if (!hToggle) return;
+    var locked = !currentUser || currentUser.isAnonymous || isGuest;
+    hToggle.classList.toggle('locked', locked);
+    var lockIcon = hToggle.querySelector('.history-lock');
+    if (locked && !lockIcon) {
+      lockIcon = document.createElement('span');
+      lockIcon.className = 'history-lock';
+      lockIcon.textContent = '🔒';
+      lockIcon.setAttribute('aria-hidden', 'true');
+      hToggle.insertBefore(lockIcon, hToggle.firstChild);
+    } else if (!locked && lockIcon) {
+      lockIcon.remove();
+    }
+  }
+
+  // ── Sign-in methods ──
+  function signInWithGoogle() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    setLoading(googleBtn, true);
+    clearMessages();
+    return auth.signInWithPopup(provider).then(function () {
+      hideAuthModal();
+    }).catch(function (err) {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        return auth.signInWithRedirect(provider);
+      }
+      if (err.code !== 'auth/popup-closed-by-user') showError(friendlyError(err));
+    }).finally(function () { setLoading(googleBtn, false); });
+  }
+
+  function signInWithApple() {
+    var provider = new firebase.auth.OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    setLoading(appleBtn, true);
+    clearMessages();
+    return auth.signInWithPopup(provider).then(function () {
+      hideAuthModal();
+    }).catch(function (err) {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        return auth.signInWithRedirect(provider);
+      }
+      if (err.code !== 'auth/popup-closed-by-user') showError(friendlyError(err));
+    }).finally(function () { setLoading(appleBtn, false); });
+  }
+
+  function handleEmailSubmit(e) {
+    e.preventDefault();
+    clearMessages();
+    var email = emailInput ? emailInput.value.trim() : '';
+    var password = passwordInput ? passwordInput.value : '';
+
+    if (!email) { showError('Please enter your email address.'); return; }
+
+    if (mode === 'forgot') {
+      setLoading(submitBtn, true);
+      auth.sendPasswordResetEmail(email).then(function () {
+        showSuccess('Password reset email sent. Check your inbox.');
+      }).catch(function (err) {
+        showError(friendlyError(err));
+      }).finally(function () { setLoading(submitBtn, false); });
+      return;
+    }
+
+    if (!password) { showError('Please enter your password.'); return; }
+    if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+
+    if (mode === 'register') {
+      var confirmPw = confirmPwEl ? confirmPwEl.value : '';
+      if (password !== confirmPw) { showError('Passwords do not match.'); return; }
+    }
+
+    var persistence = (rememberCheck && rememberCheck.checked)
+      ? firebase.auth.Auth.Persistence.LOCAL
+      : firebase.auth.Auth.Persistence.SESSION;
+
+    setLoading(submitBtn, true);
+    auth.setPersistence(persistence).then(function () {
+      if (mode === 'register') {
+        return auth.createUserWithEmailAndPassword(email, password).then(function (cred) {
+          if (cred.user) {
+            cred.user.sendEmailVerification().catch(function () {});
+          }
+          hideAuthModal();
+        });
+      } else {
+        return auth.signInWithEmailAndPassword(email, password).then(function () {
+          hideAuthModal();
+        });
+      }
+    }).catch(function (err) {
+      showError(friendlyError(err));
+    }).finally(function () { setLoading(submitBtn, false); });
+  }
+
+  function continueAsGuest() {
+    isGuest = true;
+    hideAuthModal();
+    updateHistoryLockState();
+  }
+
+  function signOut() {
+    return auth.signOut().then(function () {
+      isGuest = false;
+      if (dropdown) dropdown.classList.remove('visible');
+      var hBlock = document.querySelector('.history-block');
+      var hToggle = document.querySelector('.history-toggle');
+      if (hBlock)  hBlock.classList.remove('open');
+      if (hToggle) hToggle.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // ── Event listeners ──
+  if (closeBtn)      closeBtn.addEventListener('click', hideAuthModal);
+  if (googleBtn)     googleBtn.addEventListener('click', signInWithGoogle);
+  if (appleBtn)      appleBtn.addEventListener('click', signInWithApple);
+  if (emailForm)     emailForm.addEventListener('submit', handleEmailSubmit);
+  if (guestBtn)      guestBtn.addEventListener('click', continueAsGuest);
+  if (navSignInBtn)  navSignInBtn.addEventListener('click', showAuthModal);
+  if (signOutBtn)    signOutBtn.addEventListener('click', signOut);
+
+  if (toggleModeBtn) {
+    toggleModeBtn.addEventListener('click', function () {
+      if (mode === 'forgot')   setMode('signin');
+      else if (mode === 'signin') setMode('register');
+      else setMode('signin');
+    });
+  }
+
+  if (forgotBtn) {
+    forgotBtn.addEventListener('click', function () { setMode('forgot'); });
+  }
+
+  // Close on overlay click
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) hideAuthModal();
+    });
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay && overlay.classList.contains('visible')) {
+      hideAuthModal();
+    }
+  });
+
+  // Avatar dropdown toggle
+  if (avatarBtn) {
+    avatarBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (dropdown) dropdown.classList.toggle('visible');
+    });
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function (e) {
+    if (dropdown && dropdown.classList.contains('visible')) {
+      if (!dropdown.contains(e.target) && e.target !== avatarBtn) {
+        dropdown.classList.remove('visible');
+      }
+    }
+  });
+
+  // ── Public API ──
+  return {
+    getUser: function ()          { return currentUser; },
+    isAuthenticated: function ()  { return !!(currentUser && !currentUser.isAnonymous && !isGuest); },
+    isGuestMode: function ()      { return isGuest; },
+    isReady: function ()          { return authReady; },
+    showAuthModal: showAuthModal,
+    hideAuthModal: hideAuthModal,
+    signOut: signOut,
+    setPendingHistoryOpen: function () { pendingHistoryOpen = true; },
+    onAuthChange: function (fn)   { listeners.push(fn); if (authReady) fn(currentUser); }
+  };
 })();
 </script>
 </body>

@@ -11,6 +11,8 @@
   <title>ChessSight.ai — See the Game Differently</title>
 
   <link rel="manifest" href="manifest.json">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5154976184228068"
+     crossorigin="anonymous"></script>
 
   <!-- ── Open Graph ── -->
   <meta property="og:type" content="website">
@@ -907,6 +909,64 @@
       color: rgba(245,240,232,0.3);
       letter-spacing: 0.06em;
     }
+
+    /* ── Cookie / storage consent banner ── */
+    .consent-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 9999;
+      background: rgba(13,13,13,0.97);
+      border-top: 1px solid var(--gold-dim);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 16px 24px;
+      transform: translateY(110%);
+      transition: transform 0.45s cubic-bezier(0.4,0,0.2,1);
+    }
+    .consent-banner.visible { transform: translateY(0); }
+    .consent-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .consent-text { flex: 1; min-width: 260px; }
+    .consent-title {
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--cream);
+      margin-bottom: 4px;
+    }
+    .consent-body {
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: rgba(245,240,232,0.62);
+    }
+    .consent-body a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+    .consent-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .consent-btn {
+      padding: 9px 22px;
+      min-height: 40px;
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid rgba(201,168,76,0.35);
+      transition: background 0.25s, border-color 0.25s, color 0.25s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .consent-btn--decline {
+      background: transparent;
+      color: rgba(245,240,232,0.55);
+    }
+    .consent-btn--decline:hover { background: rgba(245,240,232,0.06); color: var(--cream); border-color: rgba(201,168,76,0.6); }
+    .consent-btn--accept { background: var(--gold); color: var(--black-near); border-color: var(--gold); }
+    .consent-btn--accept:hover { background: var(--gold-light); border-color: var(--gold-light); }
   </style>
 </head>
 <body>
@@ -1349,6 +1409,38 @@
         btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       });
     });
+  </script>
+
+  <!-- ── Cookie / storage consent banner ── -->
+  <div id="consentBanner" class="consent-banner" role="dialog" aria-label="Cookie and storage consent" style="display:none">
+    <div class="consent-inner">
+      <div class="consent-text">
+        <p class="consent-title">Your privacy, your choice</p>
+        <p class="consent-body">ChessSight.ai stores your recent analyses in your browser's local storage to improve your experience, and loads Google Fonts. No tracking or advertising cookies are used. See our <a href="privacy.html">Privacy Policy</a> for full details.</p>
+      </div>
+      <div class="consent-actions">
+        <button class="consent-btn consent-btn--decline" id="consentDecline" type="button">Decline</button>
+        <button class="consent-btn consent-btn--accept" id="consentAccept" type="button">Accept All</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var KEY    = 'chesssight_consent';
+      var banner = document.getElementById('consentBanner');
+      if (!banner || localStorage.getItem(KEY)) return;
+      banner.style.display = '';
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { banner.classList.add('visible'); });
+      });
+      function dismiss(val) {
+        localStorage.setItem(KEY, val);
+        banner.classList.remove('visible');
+        setTimeout(function () { banner.style.display = 'none'; }, 450);
+      }
+      document.getElementById('consentAccept').addEventListener('click', function () { dismiss('accepted'); });
+      document.getElementById('consentDecline').addEventListener('click', function () { dismiss('declined'); });
+    }());
   </script>
 
 </body>
