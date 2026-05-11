@@ -1731,6 +1731,208 @@ body::before {
   .nav-actions { gap: 0.35rem; }
   .user-signin-btn { font-size: 0.72rem; padding: 0.35rem 0.7rem; }
 }
+
+/* ─── Settings Cog + Modal ──────────────────────────────── */
+.settings-cog {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(13,13,13,0.85);
+  border: 1px solid var(--gold-dim);
+  color: var(--cream);
+  font-size: 1.25rem;
+  cursor: pointer;
+  z-index: 400;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.settings-cog:hover { border-color: var(--gold); color: var(--gold); transform: rotate(90deg); }
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.settings-overlay.open { opacity: 1; pointer-events: all; }
+.settings-modal {
+  background: rgba(26,46,26,0.95);
+  border: 1px solid var(--gold-dim);
+  border-radius: 16px;
+  width: min(520px, 94vw);
+  max-height: min(600px, 90vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(16px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+.settings-overlay.open .settings-modal { transform: translateY(0) scale(1); }
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.4rem 1.6rem 0;
+}
+.settings-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--cream);
+  margin: 0;
+}
+.settings-close {
+  background: none;
+  border: none;
+  color: var(--cream);
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.settings-close:hover { opacity: 1; color: var(--gold); }
+.settings-tabs {
+  display: flex;
+  padding: 1rem 1.6rem 0;
+  border-bottom: 1px solid var(--gold-dim);
+}
+.stab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.45rem 0.9rem 0.6rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+.stab:hover { opacity: 0.85; }
+.stab.active { opacity: 1; color: var(--gold-light); border-bottom-color: var(--gold); }
+.settings-body { flex: 1; overflow-y: auto; padding: 0 1.6rem 1.6rem; }
+.settings-body::-webkit-scrollbar { width: 4px; }
+.settings-body::-webkit-scrollbar-track { background: transparent; }
+.settings-body::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+.stab-panel { display: none; }
+.stab-panel.active { display: block; }
+.s-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(201,168,76,0.08);
+}
+.s-row:last-child { border-bottom: none; }
+.s-label { font-family: var(--font-body); font-size: 0.84rem; color: var(--cream); flex: 1; }
+.s-label small { display: block; font-size: 0.71rem; opacity: 0.45; margin-top: 2px; }
+.s-toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.s-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.s-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  border: 1px solid var(--gold-dim);
+  cursor: pointer;
+  transition: background 0.22s, border-color 0.22s;
+}
+.s-toggle input:checked + .s-toggle-track { background: rgba(201,168,76,0.25); border-color: var(--gold); }
+.s-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--cream);
+  border-radius: 50%;
+  transition: transform 0.22s;
+}
+.s-toggle input:checked + .s-toggle-track::after { transform: translateX(18px); background: var(--gold-light); }
+.s-swatches { display: flex; gap: 8px; }
+.s-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.18s, border-color 0.18s;
+}
+.s-swatch:hover { transform: scale(1.18); }
+.s-swatch.active { border-color: var(--cream); }
+.s-swatch[data-accent="gold"]   { background: #c9a84c; }
+.s-swatch[data-accent="teal"]   { background: #4caba8; }
+.s-swatch[data-accent="silver"] { background: #9ca3af; }
+.s-pills {
+  display: flex;
+  gap: 2px;
+  background: rgba(13,13,13,0.5);
+  border: 1px solid var(--gold-dim);
+  border-radius: 8px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.s-pill {
+  background: none;
+  border: none;
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: background 0.18s, opacity 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+.s-pill:hover { opacity: 0.8; }
+.s-pill.active { background: var(--green-deep); color: var(--gold-light); opacity: 1; }
+.s-about-logo { font-family: var(--font-display); font-size: 1.2rem; color: var(--gold); margin: 1.2rem 0 0.4rem; }
+.s-about-desc { font-size: 0.82rem; color: var(--cream); opacity: 0.55; line-height: 1.65; margin-bottom: 1.2rem; }
+.s-about-links { display: flex; gap: 1.2rem; }
+.s-about-links a { font-size: 0.8rem; color: var(--gold-light); text-decoration: none; opacity: 0.8; transition: opacity 0.2s; }
+.s-about-links a:hover { opacity: 1; text-decoration: underline; }
+.s-version { font-size: 0.7rem; color: var(--cream); opacity: 0.3; margin-top: 1.4rem; }
+.s-row.s-disabled { opacity: 0.4; pointer-events: none; }
+.s-coming-soon {
+  font-size: 0.67rem;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+body.fs-sm { font-size: 14px; }
+body.fs-lg { font-size: 18px; }
+/* Board theme overrides */
+body.board-wood .sq-light { background: #c8a060; }
+body.board-wood .sq-dark  { background: #7d4a20; }
+body.board-mono .sq-light { background: #d8d8d8; }
+body.board-mono .sq-dark  { background: #606060; }
 </style>
 </head>
 <body>
@@ -4591,6 +4793,251 @@ window.ChessSightAuth = (function () {
     setPendingHistoryOpen: function () { pendingHistoryOpen = true; },
     onAuthChange: function (fn)   { listeners.push(fn); if (authReady) fn(currentUser); }
   };
+})();
+</script>
+
+<!-- ── Settings Cog + Modal ── -->
+<button id="settings-btn" class="settings-cog" aria-label="Open settings">⚙</button>
+
+<div id="settings-overlay" class="settings-overlay" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button class="settings-close" id="settings-close" aria-label="Close">✕</button>
+    </div>
+    <div class="settings-tabs" role="tablist">
+      <button class="stab active" data-tab="general"    role="tab">General</button>
+      <button class="stab"        data-tab="appearance" role="tab">Appearance</button>
+      <button class="stab"        data-tab="display"    role="tab">Display</button>
+      <button class="stab"        data-tab="about"      role="tab">About</button>
+    </div>
+    <div class="settings-body">
+
+      <!-- General -->
+      <div class="stab-panel active" id="stab-general">
+        <div class="s-row">
+          <div class="s-label">Reduce animations
+            <small>Minimise motion and transitions</small>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="s-reduce-motion">
+            <span class="s-toggle-track"></span>
+          </label>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Auto-save analysis
+            <small>Save results automatically after each scan</small>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="s-autosave">
+            <span class="s-toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="stab-panel" id="stab-appearance">
+        <div class="s-row s-disabled">
+          <div class="s-label">Theme</div>
+          <div style="display:flex;align-items:center;gap:0.6rem">
+            <span class="s-coming-soon">Coming soon</span>
+            <div class="s-pills">
+              <button class="s-pill active">Dark</button>
+              <button class="s-pill">Light</button>
+            </div>
+          </div>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Accent colour
+            <small>Highlight colour used across the interface</small>
+          </div>
+          <div class="s-swatches">
+            <button class="s-swatch active" data-accent="gold"   title="Gold"></button>
+            <button class="s-swatch"        data-accent="teal"   title="Teal"></button>
+            <button class="s-swatch"        data-accent="silver" title="Silver"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Display -->
+      <div class="stab-panel" id="stab-display">
+        <div class="s-row">
+          <div class="s-label">Text size</div>
+          <div class="s-pills" id="s-fontsize-pills">
+            <button class="s-pill" data-size="sm">Small</button>
+            <button class="s-pill active" data-size="md">Medium</button>
+            <button class="s-pill" data-size="lg">Large</button>
+          </div>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Board theme
+            <small>Visual style of the chess board</small>
+          </div>
+          <div class="s-pills" id="s-boardtheme-pills">
+            <button class="s-pill active" data-theme="classic">Classic</button>
+            <button class="s-pill"        data-theme="wood">Wood</button>
+            <button class="s-pill"        data-theme="mono">Mono</button>
+          </div>
+        </div>
+        <div class="s-row">
+          <div class="s-label">Compact mode
+            <small>Reduce spacing throughout the interface</small>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="s-compact">
+            <span class="s-toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="stab-panel" id="stab-about">
+        <div class="s-about-logo">ChessSight</div>
+        <div class="s-about-desc">AI-powered chess position analysis.<br>Upload a board image and get instant insights.</div>
+        <div class="s-about-links">
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Use</a>
+        </div>
+        <div class="s-version">Version 1.0 · chesssight.ai</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+window.ChessSightSettings = (function () {
+  'use strict';
+
+  var ACCENT_VARS = {
+    gold:   { '--gold': '#c9a84c', '--gold-light': '#dfc06a', '--gold-dim': 'rgba(201,168,76,0.25)' },
+    teal:   { '--gold': '#4caba8', '--gold-light': '#6dcbc8', '--gold-dim': 'rgba(76,171,168,0.25)' },
+    silver: { '--gold': '#9ca3af', '--gold-light': '#b8bec5', '--gold-dim': 'rgba(156,163,175,0.25)' }
+  };
+
+  function load(key, def) {
+    try { return localStorage.getItem(key) !== null ? localStorage.getItem(key) : def; }
+    catch (e) { return def; }
+  }
+  function save(key, val) { try { localStorage.setItem(key, String(val)); } catch (e) {} }
+
+  function applyAccent(name) {
+    var vars = ACCENT_VARS[name] || ACCENT_VARS.gold;
+    Object.keys(vars).forEach(function (k) {
+      document.documentElement.style.setProperty(k, vars[k]);
+    });
+  }
+  function applyFontSize(size) {
+    document.body.classList.remove('fs-sm', 'fs-lg');
+    if (size === 'sm') document.body.classList.add('fs-sm');
+    if (size === 'lg') document.body.classList.add('fs-lg');
+  }
+  function applyCompact(on) { document.body.classList.toggle('cs-compact', !!on); }
+  function applyReduceMotion(on) {
+    document.documentElement.setAttribute('data-reduce-motion', on ? '1' : '0');
+  }
+  function applyBoardTheme(theme) {
+    document.body.classList.remove('board-wood', 'board-mono');
+    if (theme === 'wood') document.body.classList.add('board-wood');
+    if (theme === 'mono') document.body.classList.add('board-mono');
+  }
+
+  function init() {
+    var overlay  = document.getElementById('settings-overlay');
+    var cogBtn   = document.getElementById('settings-btn');
+    var closeBtn = document.getElementById('settings-close');
+    if (!overlay) return;
+
+    var accent      = load('cs_accent', 'gold');
+    var fontsize    = load('cs_fontsize', 'md');
+    var compact     = load('cs_compact', '0') === '1';
+    var redMotion   = load('cs_reduce_motion', '0') === '1';
+    var autosave    = load('cs_autosave', '0') === '1';
+    var boardTheme  = load('cs_board_theme', 'classic');
+
+    applyAccent(accent);
+    applyFontSize(fontsize);
+    applyCompact(compact);
+    applyReduceMotion(redMotion);
+    applyBoardTheme(boardTheme);
+
+    var rmEl = document.getElementById('s-reduce-motion');
+    var asEl = document.getElementById('s-autosave');
+    var cpEl = document.getElementById('s-compact');
+    if (rmEl) rmEl.checked = redMotion;
+    if (asEl) asEl.checked = autosave;
+    if (cpEl) cpEl.checked = compact;
+
+    document.querySelectorAll('.s-swatch').forEach(function (sw) {
+      sw.classList.toggle('active', sw.dataset.accent === accent);
+      sw.addEventListener('click', function () {
+        var a = this.dataset.accent;
+        save('cs_accent', a);
+        applyAccent(a);
+        document.querySelectorAll('.s-swatch').forEach(function (s) {
+          s.classList.toggle('active', s.dataset.accent === a);
+        });
+      });
+    });
+
+    var fsPills = document.querySelectorAll('#s-fontsize-pills .s-pill');
+    fsPills.forEach(function (pill) {
+      pill.classList.toggle('active', pill.dataset.size === fontsize);
+      pill.addEventListener('click', function () {
+        var s = this.dataset.size;
+        save('cs_fontsize', s);
+        applyFontSize(s);
+        fsPills.forEach(function (p) { p.classList.toggle('active', p.dataset.size === s); });
+      });
+    });
+
+    var btPills = document.querySelectorAll('#s-boardtheme-pills .s-pill');
+    btPills.forEach(function (pill) {
+      pill.classList.toggle('active', pill.dataset.theme === boardTheme);
+      pill.addEventListener('click', function () {
+        var t = this.dataset.theme;
+        save('cs_board_theme', t);
+        applyBoardTheme(t);
+        btPills.forEach(function (p) { p.classList.toggle('active', p.dataset.theme === t); });
+      });
+    });
+
+    if (rmEl) rmEl.addEventListener('change', function () {
+      save('cs_reduce_motion', this.checked ? '1' : '0');
+      applyReduceMotion(this.checked);
+    });
+    if (asEl) asEl.addEventListener('change', function () {
+      save('cs_autosave', this.checked ? '1' : '0');
+    });
+    if (cpEl) cpEl.addEventListener('change', function () {
+      save('cs_compact', this.checked ? '1' : '0');
+      applyCompact(this.checked);
+    });
+
+    document.querySelectorAll('.stab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var target = this.dataset.tab;
+        document.querySelectorAll('.stab').forEach(function (t) {
+          t.classList.toggle('active', t.dataset.tab === target);
+        });
+        document.querySelectorAll('.stab-panel').forEach(function (p) {
+          p.classList.toggle('active', p.id === 'stab-' + target);
+        });
+      });
+    });
+
+    function openSettings()  { overlay.classList.add('open'); }
+    function closeSettings() { overlay.classList.remove('open'); }
+
+    if (cogBtn)  cogBtn.addEventListener('click', openSettings);
+    if (closeBtn) closeBtn.addEventListener('click', closeSettings);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSettings(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeSettings();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
 })();
 </script>
 </body>
