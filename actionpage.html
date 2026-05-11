@@ -8,6 +8,8 @@
 <link rel="manifest" href="manifest.json">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5154976184228068"
      crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1482,6 +1484,252 @@ body::before {
 .consent-btn--decline:hover { background: rgba(245,240,232,0.06); color: var(--cream); border-color: rgba(201,168,76,0.6); }
 .consent-btn--accept { background: var(--gold); color: var(--black-near); border-color: var(--gold); }
 .consent-btn--accept:hover { background: var(--gold-light); border-color: var(--gold-light); }
+
+/* ─── Auth Modal ──────────────────────────────────────────── */
+.auth-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(13,13,13,0.88);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s var(--ease);
+}
+.auth-overlay.visible { opacity: 1; pointer-events: auto; }
+.auth-modal {
+  position: relative; width: 92%; max-width: 400px;
+  background: rgba(26,46,26,0.95);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 16px; padding: 2.2rem 1.8rem 1.8rem;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s var(--ease);
+  max-height: 90vh; overflow-y: auto;
+}
+.auth-overlay.visible .auth-modal { transform: translateY(0) scale(1); }
+.auth-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: none; border: none; cursor: pointer;
+  color: rgba(245,240,232,0.45); font-size: 1.4rem; line-height: 1;
+  transition: color var(--transition);
+  padding: 0.2rem 0.4rem;
+}
+.auth-close:hover { color: var(--gold); }
+.auth-header { text-align: center; margin-bottom: 1.6rem; }
+.auth-glyph {
+  font-size: 2rem; display: block; margin-bottom: 0.5rem;
+  opacity: 0.7;
+}
+.auth-title {
+  font-family: var(--font-display); font-size: 1.35rem;
+  color: var(--cream); font-weight: 600; margin: 0 0 0.35rem;
+}
+.auth-title em { color: var(--gold); font-style: italic; }
+.auth-subtitle {
+  font-family: var(--font-body); font-size: 0.8rem;
+  color: rgba(245,240,232,0.5); margin: 0;
+}
+.auth-providers { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.2rem; }
+.auth-provider-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  width: 100%; padding: 0.7rem 1rem;
+  background: rgba(13,13,13,0.5);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+  color: var(--cream);
+  transition: border-color var(--transition), background var(--transition);
+}
+.auth-provider-btn:hover {
+  border-color: rgba(201,168,76,0.5);
+  background: rgba(201,168,76,0.06);
+}
+.auth-provider-btn:active { transform: scale(0.985); }
+.auth-provider-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.auth-provider-btn:disabled {
+  opacity: 0.5; cursor: not-allowed;
+}
+.auth-divider {
+  display: flex; align-items: center; gap: 0.8rem;
+  margin: 1.1rem 0; color: rgba(245,240,232,0.3);
+  font-family: var(--font-body); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+}
+.auth-email-form { display: flex; flex-direction: column; gap: 0.65rem; }
+.auth-input {
+  width: 100%; padding: 0.7rem 0.9rem;
+  background: rgba(13,13,13,0.5);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 10px;
+  font-family: var(--font-body); font-size: 0.85rem;
+  color: var(--cream); outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  box-sizing: border-box;
+}
+.auth-input::placeholder { color: rgba(245,240,232,0.3); }
+.auth-input:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 2px rgba(201,168,76,0.1);
+}
+.auth-remember {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-family: var(--font-body); font-size: 0.75rem;
+  color: rgba(245,240,232,0.5); cursor: pointer;
+  user-select: none; margin-top: -0.1rem;
+}
+.auth-remember input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 15px; height: 15px; border-radius: 4px;
+  border: 1px solid rgba(201,168,76,0.3);
+  background: rgba(13,13,13,0.5);
+  cursor: pointer; position: relative;
+  transition: border-color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+.auth-remember input[type="checkbox"]:checked {
+  background: var(--gold); border-color: var(--gold);
+}
+.auth-remember input[type="checkbox"]:checked::after {
+  content: ''; position: absolute;
+  left: 4px; top: 1px; width: 5px; height: 9px;
+  border: solid var(--black-near); border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.auth-error {
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: #e07c5a; margin: 0; display: none;
+  padding: 0.4rem 0.6rem;
+  background: rgba(224,124,90,0.08);
+  border-radius: 6px;
+}
+.auth-error.visible { display: block; }
+.auth-success {
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: #6abf8a; margin: 0; display: none;
+  padding: 0.4rem 0.6rem;
+  background: rgba(106,191,138,0.08);
+  border-radius: 6px;
+}
+.auth-success.visible { display: block; }
+.auth-submit-btn {
+  width: 100%; padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border: none; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.88rem; font-weight: 600;
+  color: var(--black-near);
+  transition: opacity var(--transition), transform 0.15s;
+  margin-top: 0.15rem;
+}
+.auth-submit-btn:hover { opacity: 0.9; }
+.auth-submit-btn:active { transform: scale(0.985); }
+.auth-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-submit-btn .btn-spinner-inline {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(13,13,13,0.3);
+  border-top-color: var(--black-near);
+  border-radius: 50%; animation: authSpin 0.6s linear infinite;
+  vertical-align: middle; margin-right: 0.4rem;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+.auth-links {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.2rem;
+}
+.auth-link {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.75rem;
+  color: rgba(245,240,232,0.45);
+  transition: color var(--transition);
+  padding: 0;
+}
+.auth-link:hover { color: var(--gold); }
+.auth-guest-btn {
+  width: 100%; padding: 0.6rem 1rem;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.82rem;
+  color: rgba(245,240,232,0.45);
+  transition: color var(--transition);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.auth-guest-btn:hover { color: var(--cream); }
+.auth-confirm-pw { display: none; }
+.auth-confirm-pw.visible { display: block; }
+
+/* ─── Nav User Menu ───────────────────────────────────────── */
+.nav-actions { display: inline-flex; align-items: center; gap: 0.5rem; }
+.user-menu { position: relative; }
+.user-signin-btn {
+  font-family: var(--font-body); font-size: 0.78rem;
+  font-weight: 500; letter-spacing: 0.04em;
+  color: var(--gold); background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 8px; padding: 0.4rem 0.9rem;
+  cursor: pointer; transition: background var(--transition), border-color var(--transition);
+}
+.user-signin-btn:hover { background: rgba(201,168,76,0.15); border-color: rgba(201,168,76,0.5); }
+.user-avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid rgba(201,168,76,0.3);
+  background: var(--green-deep); cursor: pointer;
+  overflow: hidden; padding: 0;
+  transition: border-color var(--transition);
+  display: none;
+}
+.user-avatar-btn:hover { border-color: var(--gold); }
+.user-avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.user-avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  font-family: var(--font-display); font-size: 0.85rem;
+  color: var(--gold); font-weight: 600;
+}
+.user-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 220px;
+  background: rgba(26,46,26,0.97);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 12px; padding: 1rem;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  z-index: 200; display: none;
+  transform: translateY(-4px); opacity: 0;
+  transition: transform var(--transition), opacity var(--transition);
+}
+.user-dropdown.visible { display: block; transform: translateY(0); opacity: 1; }
+.user-dropdown-name {
+  font-family: var(--font-display); font-size: 0.9rem;
+  color: var(--cream); font-weight: 600; margin: 0;
+}
+.user-dropdown-email {
+  font-family: var(--font-body); font-size: 0.72rem;
+  color: rgba(245,240,232,0.45); margin: 0.15rem 0 0; word-break: break-all;
+}
+.user-dropdown-divider {
+  border: none; height: 1px;
+  background: rgba(201,168,76,0.15); margin: 0.75rem 0;
+}
+.user-dropdown-item {
+  display: block; width: 100%;
+  background: none; border: none; text-align: left;
+  font-family: var(--font-body); font-size: 0.78rem;
+  color: var(--cream); padding: 0.45rem 0.2rem;
+  cursor: pointer; transition: color var(--transition);
+}
+.user-dropdown-item:hover { color: var(--gold); }
+
+/* ─── History Lock State ──────────────────────────────────── */
+.history-toggle.locked { opacity: 0.8; }
+.history-lock {
+  font-size: 0.7rem; margin-right: 0.35rem;
+  filter: grayscale(0.3);
+}
+
+@media (max-width: 640px) {
+  .auth-modal { padding: 1.6rem 1.2rem 1.4rem; }
+  .nav-actions { gap: 0.35rem; }
+  .user-signin-btn { font-size: 0.72rem; padding: 0.35rem 0.7rem; }
+}
 </style>
 </head>
 <body>
@@ -1493,7 +1741,22 @@ body::before {
     <a href="index.html" class="nav-logo">ChessSight<span class="ai">.ai</span></a>
     <span class="beta-badge">Beta</span>
   </div>
-  <a href="index.html" class="nav-btn">← Back to Home</a>
+  <div class="nav-actions">
+    <a href="index.html" class="nav-btn">← Home</a>
+    <div class="user-menu" id="userMenu">
+      <button class="user-signin-btn" id="navSignInBtn" type="button">Sign In</button>
+      <button class="user-avatar-btn" id="userAvatarBtn" type="button" aria-label="Account menu">
+        <img class="user-avatar" id="userAvatar" src="" alt="Profile">
+        <span class="user-avatar-fallback" id="userAvatarFallback">?</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown" role="menu">
+        <p class="user-dropdown-name" id="dropdownName"></p>
+        <p class="user-dropdown-email" id="dropdownEmail"></p>
+        <hr class="user-dropdown-divider">
+        <button class="user-dropdown-item" id="navSignOutBtn" type="button" role="menuitem">Sign Out</button>
+      </div>
+    </div>
+  </div>
 </nav>
 
 <!-- Main page -->
@@ -3735,6 +3998,7 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   }
 
   async function pushHistoryEntry({ fen, opening, file }) {
+    if (window.ChessSightAuth && !window.ChessSightAuth.isAuthenticated()) return;
     const thumb = await makeThumbnail(file);
     const entry = {
       thumb:   thumb || null,
@@ -3872,6 +4136,11 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
 
   if (historyToggle && historyBlock) {
     historyToggle.addEventListener('click', () => {
+      if (window.ChessSightAuth && !window.ChessSightAuth.isAuthenticated()) {
+        window.ChessSightAuth.setPendingHistoryOpen();
+        window.ChessSightAuth.showAuthModal();
+        return;
+      }
       const open = historyBlock.classList.toggle('open');
       historyToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
@@ -3882,6 +4151,49 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   loadFromShareUrl();
 })();
 </script>
+
+<!-- ── Auth Modal ── -->
+<div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="auth-modal">
+    <button class="auth-close" id="authClose" type="button" aria-label="Close">&times;</button>
+    <div class="auth-header">
+      <span class="auth-glyph" aria-hidden="true">&#9822;</span>
+      <h2 class="auth-title">Sign in to <em>ChessSight</em></h2>
+      <p class="auth-subtitle">Save your analysis history across sessions</p>
+    </div>
+    <div class="auth-providers">
+      <button class="auth-provider-btn" id="googleSignIn" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continue with Google
+      </button>
+      <button class="auth-provider-btn" id="appleSignIn" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.62-2.2.44-3.06-.4C3.79 16.17 4.36 9.53 8.71 9.27c1.26.06 2.14.7 2.88.74.97-.2 1.9-.76 2.94-.69 1.24.1 2.18.58 2.8 1.46-2.56 1.54-1.95 4.92.58 5.86-.46 1.21-.68 1.76-1.28 2.83-.61 1.06-.86 1.32-1.58 1.81zM12.05 9.19c-.15-2.34 1.74-4.36 3.95-4.55.3 2.58-2.29 4.5-3.95 4.55z" fill="#f5f0e8"/></svg>
+        Continue with Apple
+      </button>
+    </div>
+    <div class="auth-divider">or</div>
+    <form class="auth-email-form" id="authEmailForm" autocomplete="on">
+      <input class="auth-input" id="authEmail" type="email" name="email" placeholder="your@email.com" autocomplete="email" required>
+      <input class="auth-input" id="authPassword" type="password" name="password" placeholder="Password" autocomplete="current-password" required minlength="6">
+      <input class="auth-input auth-confirm-pw" id="authConfirmPw" type="password" placeholder="Confirm password" autocomplete="new-password" minlength="6">
+      <label class="auth-remember">
+        <input type="checkbox" id="authRemember" checked>
+        Remember me
+      </label>
+      <p class="auth-error" id="authError" role="alert"></p>
+      <p class="auth-success" id="authSuccess" role="status"></p>
+      <button class="auth-submit-btn" id="authSubmit" type="submit">
+        <span id="authSubmitText">Sign In</span>
+      </button>
+      <div class="auth-links">
+        <button class="auth-link" id="authToggleMode" type="button">Don't have an account? <strong>Create one</strong></button>
+        <button class="auth-link" id="authForgot" type="button">Forgot password?</button>
+      </div>
+    </form>
+    <div class="auth-divider">or</div>
+    <button class="auth-guest-btn" id="authGuest" type="button">Continue as Guest</button>
+  </div>
+</div>
 
 <!-- ── Cookie / storage consent banner ── -->
 <div id="consentBanner" class="consent-banner" role="dialog" aria-label="Cookie and storage consent" style="display:none">
@@ -3913,6 +4225,372 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   document.getElementById('consentAccept').addEventListener('click', function () { dismiss('accepted'); });
   document.getElementById('consentDecline').addEventListener('click', function () { dismiss('declined'); });
 }());
+</script>
+
+<!-- ── Firebase Init + Auth Module ── -->
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCFSp90LymfpDa3yt4gkBFHVl_oNb0PUWg",
+  authDomain: "chesssight.firebaseapp.com",
+  projectId: "chesssight"
+});
+
+window.ChessSightAuth = (function () {
+  'use strict';
+
+  var auth = firebase.auth();
+  var currentUser = null;
+  var isGuest = false;
+  var listeners = [];
+  var authReady = false;
+  var pendingHistoryOpen = false;
+
+  // ── DOM refs ──
+  var overlay       = document.getElementById('authOverlay');
+  var closeBtn      = document.getElementById('authClose');
+  var googleBtn     = document.getElementById('googleSignIn');
+  var appleBtn      = document.getElementById('appleSignIn');
+  var emailForm     = document.getElementById('authEmailForm');
+  var emailInput    = document.getElementById('authEmail');
+  var passwordInput = document.getElementById('authPassword');
+  var confirmPwEl   = document.getElementById('authConfirmPw');
+  var rememberCheck = document.getElementById('authRemember');
+  var errorEl       = document.getElementById('authError');
+  var successEl     = document.getElementById('authSuccess');
+  var submitBtn     = document.getElementById('authSubmit');
+  var submitText    = document.getElementById('authSubmitText');
+  var toggleModeBtn = document.getElementById('authToggleMode');
+  var forgotBtn     = document.getElementById('authForgot');
+  var guestBtn      = document.getElementById('authGuest');
+  var navSignInBtn  = document.getElementById('navSignInBtn');
+  var avatarBtn     = document.getElementById('userAvatarBtn');
+  var avatarImg     = document.getElementById('userAvatar');
+  var avatarFallback= document.getElementById('userAvatarFallback');
+  var dropdown      = document.getElementById('userDropdown');
+  var dropdownName  = document.getElementById('dropdownName');
+  var dropdownEmail = document.getElementById('dropdownEmail');
+  var signOutBtn    = document.getElementById('navSignOutBtn');
+
+  var mode = 'signin'; // 'signin' | 'register' | 'forgot'
+
+  // ── Error messages ──
+  var ERROR_MAP = {
+    'auth/user-not-found':        'No account found with that email.',
+    'auth/wrong-password':        'Incorrect password.',
+    'auth/invalid-credential':    'Invalid email or password.',
+    'auth/email-already-in-use':  'An account with that email already exists.',
+    'auth/weak-password':         'Password must be at least 6 characters.',
+    'auth/too-many-requests':     'Too many attempts. Please try again later.',
+    'auth/popup-blocked':         'Popup was blocked. Please allow popups for this site.',
+    'auth/invalid-email':         'Please enter a valid email address.',
+    'auth/network-request-failed':'Network error. Check your internet connection.'
+  };
+
+  function friendlyError(err) {
+    return ERROR_MAP[err.code] || err.message || 'Something went wrong. Please try again.';
+  }
+
+  // ── Modal control ──
+  function showAuthModal() {
+    setMode('signin');
+    clearMessages();
+    if (emailForm) emailForm.reset();
+    if (rememberCheck) rememberCheck.checked = true;
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { if (emailInput) emailInput.focus(); }, 350);
+  }
+
+  function hideAuthModal() {
+    overlay.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+
+  function clearMessages() {
+    if (errorEl)   { errorEl.textContent = ''; errorEl.classList.remove('visible'); }
+    if (successEl) { successEl.textContent = ''; successEl.classList.remove('visible'); }
+  }
+
+  function showError(msg) {
+    clearMessages();
+    if (errorEl) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
+  }
+
+  function showSuccess(msg) {
+    clearMessages();
+    if (successEl) { successEl.textContent = msg; successEl.classList.add('visible'); }
+  }
+
+  function setLoading(btn, loading) {
+    if (!btn) return;
+    btn.disabled = loading;
+    if (btn === submitBtn && submitText) {
+      if (loading) {
+        submitText.innerHTML = '<span class="btn-spinner-inline"></span>' + submitText.textContent;
+      } else {
+        submitText.textContent = mode === 'register' ? 'Create Account' : mode === 'forgot' ? 'Send Reset Link' : 'Sign In';
+      }
+    }
+  }
+
+  // ── Mode switching ──
+  function setMode(newMode) {
+    mode = newMode;
+    clearMessages();
+    if (confirmPwEl) confirmPwEl.classList.toggle('visible', mode === 'register');
+    if (submitText) {
+      submitText.textContent = mode === 'register' ? 'Create Account' : mode === 'forgot' ? 'Send Reset Link' : 'Sign In';
+    }
+    if (passwordInput) passwordInput.style.display = mode === 'forgot' ? 'none' : '';
+    if (confirmPwEl) confirmPwEl.style.display = mode === 'register' ? '' : 'none';
+    if (forgotBtn) forgotBtn.style.display = mode === 'forgot' ? 'none' : '';
+    if (toggleModeBtn) {
+      if (mode === 'forgot') {
+        toggleModeBtn.innerHTML = '&larr; Back to <strong>Sign In</strong>';
+      } else if (mode === 'register') {
+        toggleModeBtn.innerHTML = 'Already have an account? <strong>Sign In</strong>';
+      } else {
+        toggleModeBtn.innerHTML = "Don't have an account? <strong>Create one</strong>";
+      }
+    }
+    if (passwordInput) {
+      passwordInput.autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+    }
+  }
+
+  // ── Auth state observer ──
+  auth.onAuthStateChanged(function (user) {
+    currentUser = user;
+    if (user && !user.isAnonymous) {
+      isGuest = false;
+    }
+    authReady = true;
+    updateNavUI();
+    updateHistoryLockState();
+    listeners.forEach(function (fn) { fn(user); });
+
+    if (user && !user.isAnonymous && pendingHistoryOpen) {
+      pendingHistoryOpen = false;
+      var hBlock = document.querySelector('.history-block');
+      var hToggle = document.querySelector('.history-toggle');
+      if (hBlock && !hBlock.classList.contains('open')) {
+        hBlock.classList.add('open');
+        if (hToggle) hToggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+  });
+
+  // Check for redirect result on page load
+  auth.getRedirectResult().then(function (result) {
+    if (result && result.user) {
+      hideAuthModal();
+    }
+  }).catch(function () {});
+
+  // ── Nav UI ──
+  function updateNavUI() {
+    if (currentUser && !currentUser.isAnonymous) {
+      if (navSignInBtn) navSignInBtn.style.display = 'none';
+      if (avatarBtn) avatarBtn.style.display = '';
+      if (currentUser.photoURL) {
+        if (avatarImg)     { avatarImg.src = currentUser.photoURL; avatarImg.style.display = ''; }
+        if (avatarFallback) avatarFallback.style.display = 'none';
+      } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarFallback) {
+          avatarFallback.style.display = '';
+          avatarFallback.textContent = ((currentUser.displayName || currentUser.email || '?')[0] || '?').toUpperCase();
+        }
+      }
+      if (dropdownName)  dropdownName.textContent = currentUser.displayName || 'Player';
+      if (dropdownEmail) dropdownEmail.textContent = currentUser.email || '';
+    } else {
+      if (navSignInBtn)  navSignInBtn.style.display = '';
+      if (avatarBtn)     avatarBtn.style.display = 'none';
+      if (dropdown)      dropdown.classList.remove('visible');
+    }
+  }
+
+  // ── History lock ──
+  function updateHistoryLockState() {
+    var hToggle = document.querySelector('.history-toggle');
+    if (!hToggle) return;
+    var locked = !currentUser || currentUser.isAnonymous || isGuest;
+    hToggle.classList.toggle('locked', locked);
+    var lockIcon = hToggle.querySelector('.history-lock');
+    if (locked && !lockIcon) {
+      lockIcon = document.createElement('span');
+      lockIcon.className = 'history-lock';
+      lockIcon.textContent = '🔒';
+      lockIcon.setAttribute('aria-hidden', 'true');
+      hToggle.insertBefore(lockIcon, hToggle.firstChild);
+    } else if (!locked && lockIcon) {
+      lockIcon.remove();
+    }
+  }
+
+  // ── Sign-in methods ──
+  function signInWithGoogle() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    setLoading(googleBtn, true);
+    clearMessages();
+    return auth.signInWithPopup(provider).then(function () {
+      hideAuthModal();
+    }).catch(function (err) {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        return auth.signInWithRedirect(provider);
+      }
+      if (err.code !== 'auth/popup-closed-by-user') showError(friendlyError(err));
+    }).finally(function () { setLoading(googleBtn, false); });
+  }
+
+  function signInWithApple() {
+    var provider = new firebase.auth.OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    setLoading(appleBtn, true);
+    clearMessages();
+    return auth.signInWithPopup(provider).then(function () {
+      hideAuthModal();
+    }).catch(function (err) {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        return auth.signInWithRedirect(provider);
+      }
+      if (err.code !== 'auth/popup-closed-by-user') showError(friendlyError(err));
+    }).finally(function () { setLoading(appleBtn, false); });
+  }
+
+  function handleEmailSubmit(e) {
+    e.preventDefault();
+    clearMessages();
+    var email = emailInput ? emailInput.value.trim() : '';
+    var password = passwordInput ? passwordInput.value : '';
+
+    if (!email) { showError('Please enter your email address.'); return; }
+
+    if (mode === 'forgot') {
+      setLoading(submitBtn, true);
+      auth.sendPasswordResetEmail(email).then(function () {
+        showSuccess('Password reset email sent. Check your inbox.');
+      }).catch(function (err) {
+        showError(friendlyError(err));
+      }).finally(function () { setLoading(submitBtn, false); });
+      return;
+    }
+
+    if (!password) { showError('Please enter your password.'); return; }
+    if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+
+    if (mode === 'register') {
+      var confirmPw = confirmPwEl ? confirmPwEl.value : '';
+      if (password !== confirmPw) { showError('Passwords do not match.'); return; }
+    }
+
+    var persistence = (rememberCheck && rememberCheck.checked)
+      ? firebase.auth.Auth.Persistence.LOCAL
+      : firebase.auth.Auth.Persistence.SESSION;
+
+    setLoading(submitBtn, true);
+    auth.setPersistence(persistence).then(function () {
+      if (mode === 'register') {
+        return auth.createUserWithEmailAndPassword(email, password).then(function (cred) {
+          if (cred.user) {
+            cred.user.sendEmailVerification().catch(function () {});
+          }
+          hideAuthModal();
+        });
+      } else {
+        return auth.signInWithEmailAndPassword(email, password).then(function () {
+          hideAuthModal();
+        });
+      }
+    }).catch(function (err) {
+      showError(friendlyError(err));
+    }).finally(function () { setLoading(submitBtn, false); });
+  }
+
+  function continueAsGuest() {
+    isGuest = true;
+    hideAuthModal();
+    updateHistoryLockState();
+  }
+
+  function signOut() {
+    return auth.signOut().then(function () {
+      isGuest = false;
+      if (dropdown) dropdown.classList.remove('visible');
+      var hBlock = document.querySelector('.history-block');
+      var hToggle = document.querySelector('.history-toggle');
+      if (hBlock)  hBlock.classList.remove('open');
+      if (hToggle) hToggle.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // ── Event listeners ──
+  if (closeBtn)      closeBtn.addEventListener('click', hideAuthModal);
+  if (googleBtn)     googleBtn.addEventListener('click', signInWithGoogle);
+  if (appleBtn)      appleBtn.addEventListener('click', signInWithApple);
+  if (emailForm)     emailForm.addEventListener('submit', handleEmailSubmit);
+  if (guestBtn)      guestBtn.addEventListener('click', continueAsGuest);
+  if (navSignInBtn)  navSignInBtn.addEventListener('click', showAuthModal);
+  if (signOutBtn)    signOutBtn.addEventListener('click', signOut);
+
+  if (toggleModeBtn) {
+    toggleModeBtn.addEventListener('click', function () {
+      if (mode === 'forgot')   setMode('signin');
+      else if (mode === 'signin') setMode('register');
+      else setMode('signin');
+    });
+  }
+
+  if (forgotBtn) {
+    forgotBtn.addEventListener('click', function () { setMode('forgot'); });
+  }
+
+  // Close on overlay click
+  if (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) hideAuthModal();
+    });
+  }
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay && overlay.classList.contains('visible')) {
+      hideAuthModal();
+    }
+  });
+
+  // Avatar dropdown toggle
+  if (avatarBtn) {
+    avatarBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (dropdown) dropdown.classList.toggle('visible');
+    });
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function (e) {
+    if (dropdown && dropdown.classList.contains('visible')) {
+      if (!dropdown.contains(e.target) && e.target !== avatarBtn) {
+        dropdown.classList.remove('visible');
+      }
+    }
+  });
+
+  // ── Public API ──
+  return {
+    getUser: function ()          { return currentUser; },
+    isAuthenticated: function ()  { return !!(currentUser && !currentUser.isAnonymous && !isGuest); },
+    isGuestMode: function ()      { return isGuest; },
+    isReady: function ()          { return authReady; },
+    showAuthModal: showAuthModal,
+    hideAuthModal: hideAuthModal,
+    signOut: signOut,
+    setPendingHistoryOpen: function () { pendingHistoryOpen = true; },
+    onAuthChange: function (fn)   { listeners.push(fn); if (authReady) fn(currentUser); }
+  };
+})();
 </script>
 </body>
 </html>
