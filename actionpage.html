@@ -1592,10 +1592,11 @@ body::before {
   background: var(--gold); border-color: var(--gold);
 }
 .auth-remember input[type="checkbox"]:checked::after {
-  content: ''; position: absolute;
-  left: 4px; top: 1px; width: 5px; height: 9px;
-  border: solid var(--black-near); border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  content: '✓'; position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 11px; font-weight: bold;
+  color: var(--black-near);
+  line-height: 1;
 }
 .auth-error {
   font-family: var(--font-body); font-size: 0.78rem;
