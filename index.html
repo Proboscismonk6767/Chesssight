@@ -133,7 +133,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      transition: background 0.4s ease, border-color 0.4s ease;
+      transition: background 0.4s ease, border-color 0.4s ease, transform 0.32s ease;
       border-bottom: 1px solid transparent;
     }
 
@@ -143,6 +143,7 @@
       -webkit-backdrop-filter: blur(14px);
       border-bottom-color: rgba(201,168,76,0.14);
     }
+    #nav.nav-hidden { transform: translateY(-100%); }
 
     .nav-logo {
       font-family: var(--font-display);
@@ -1188,13 +1189,21 @@
 
     @media (max-width: 640px) {
       .auth-modal { padding: 1.6rem 1.2rem 1.4rem; }
+      .nav-actions {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-shrink: 1;
+        min-width: 0;
+      }
+      .nav-actions::-webkit-scrollbar { display: none; }
     }
 
     /* ── Settings Cog + Modal ───────────────────────────── */
     .settings-cog {
       position: fixed;
-      bottom: 1.5rem;
-      left: 1.5rem;
+      bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
+      left: max(1.5rem, calc(env(safe-area-inset-left, 0px) + 0.75rem));
       width: 44px;
       height: 44px;
       border-radius: 50%;
@@ -1270,7 +1279,11 @@
       display: flex;
       padding: 1rem 1.6rem 0;
       border-bottom: 1px solid var(--gold-dim);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
+    .settings-tabs::-webkit-scrollbar { display: none; }
     .stab {
       background: none;
       border: none;
@@ -1899,10 +1912,18 @@
       });
     });
 
-    // ── Nav glass effect on scroll ────────────────────────────
+    // ── Nav glass + hide-on-scroll ────────────────────────────
     var nav = document.getElementById('nav');
+    var lastScrollY = window.scrollY;
     window.addEventListener('scroll', function() {
-      nav.classList.toggle('scrolled', window.scrollY > 56);
+      var currentScrollY = window.scrollY;
+      nav.classList.toggle('scrolled', currentScrollY > 56);
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        nav.classList.add('nav-hidden');
+      } else {
+        nav.classList.remove('nav-hidden');
+      }
+      lastScrollY = currentScrollY;
     }, { passive: true });
 
     // ── FAQ accordion ────────────────────────────────────────
