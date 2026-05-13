@@ -2141,6 +2141,7 @@
 
     function updateNavUI() {
       if (currentUser && !currentUser.isAnonymous) {
+        // User is authenticated (signed in)
         if (navSignInBtn) navSignInBtn.style.display = 'none';
         if (avatarBtn) avatarBtn.style.display = '';
         if (currentUser.photoURL) {
@@ -2156,7 +2157,7 @@
         if (dropdownName)  dropdownName.textContent = currentUser.displayName || 'Player';
         if (dropdownEmail) dropdownEmail.textContent = currentUser.email || '';
       } else {
-        if (navSignInBtn)  navSignInBtn.style.display = '';
+        // User is not authenticated — keep sign-in button visible (even if guest)
         if (avatarBtn)     avatarBtn.style.display = 'none';
         if (dropdown)      dropdown.classList.remove('visible');
       }
