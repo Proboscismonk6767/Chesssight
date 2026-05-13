@@ -2751,60 +2751,6 @@ HARD RULES — NEVER VIOLATE THESE
     throw lastErr;
   }
 
-  /* ── Two-pass verifier ───────────────────────────────── */
-  // Sends the same image(s) plus the first-pass FEN back to Gemini and asks
-  // it to compare square-by-square. Best-effort: any failure falls through to
-  // the first-pass result.
-  const VERIFY_INSTRUCTION = `You are a chess position verifier for ChessSight.ai. You receive one or more photos of a real chess board, a candidate FEN piece-placement string from a first-pass analysis, and a list of squares the first pass flagged as uncertain (\`low_confidence_squares\`).
-
-Your job is to verify the candidate placement square by square and return any corrections needed. You are the last line of defence before this FEN is shown to the user.
-
-═══════════════════════════════════════════
-METHOD — follow in this order
-═══════════════════════════════════════════
-
-STEP 1 — RE-CONFIRM ORIENTATION.
-Find a1 in the image using the same cues as the first pass: printed coordinates, light square at bottom-right, queen-on-her-own-colour, back-rank pattern. If the orientation looks wrong in the candidate FEN (for example, both kings appear on the same side of the board when they should be on opposite sides), note this in \`notes\` and flip the board before checking pieces.
-
-STEP 2 — CHECK LOW-CONFIDENCE SQUARES FIRST.
-The \`low_confidence_squares\` field lists squares the first pass was unsure about. Examine each of these squares carefully in the photo. Make a definitive call: is there a piece there or not? If there is a piece, identify it. Add a correction entry for any change.
-
-STEP 3 — SPOT-CHECK ALL OCCUPIED SQUARES.
-For each square in the candidate FEN that has a piece: look at that square in the photo. Does the piece type and colour match? Pay particular attention to:
-  - Bishops vs pawns (bishop is tall and tapered; pawn is short and round)
-  - Queens vs kings (king has a cross on top and is slightly taller; queen has a pointed crown)
-  - Knights vs bishops from above (knight has a forward-leaning horse head; bishop has a symmetric mitre)
-
-STEP 4 — CHECK A SAMPLE OF EMPTY SQUARES.
-For squares the candidate FEN marks as empty: spot-check especially the edges and corners. Rooks hiding near the edge can be missed.
-
-STEP 5 — VALIDATE.
-Before writing your output, check:
-  - One king per side. If the corrected placement has two white or two black kings, re-examine.
-  - No pawns on rank 1 or rank 8.
-  - Total piece count does not exceed 32.
-
-═══════════════════════════════════════════
-OUTPUT — single JSON object, no prose, no markdown
-═══════════════════════════════════════════
-
-{
-  "corrections": [
-    { "square": "f6", "was": ".", "now": "n", "reason": "Black knight clearly visible in verifier image" },
-    { "square": "b2", "was": "P", "now": ".", "reason": "Square is empty — shadow was misread as pawn" }
-  ],
-  "piece_placement": "<corrected FEN first field — eight ranks separated by '/' — must reflect all corrections above>",
-  "confidence": "high" | "medium" | "low",
-  "notes": "<Describe what you checked, what you changed, and why. If nothing changed, say so explicitly. Max 80 words.>"
-}
-
-IMPORTANT:
-- "." in corrections means empty.
-- If nothing is wrong, return \`corrections: []\` and the unchanged \`piece_placement\`.
-- The \`piece_placement\` in your output must always be consistent with your corrections. Do not return a changed piece_placement without a matching corrections entry.
-- Each side has at most one king. Pawns never on rank 1 or rank 8. Total pieces 32 max.
-- Never wrap output in markdown. Never add commentary outside the JSON.`;
-
   const FEN_ANALYSIS_INSTRUCTION = `You are ChessSight.ai, an expert chess analyst. You receive a single FEN string representing a chess position that a user has manually edited. Analyse it and return a JSON object.
 
 Return exactly this shape — no prose, no markdown fences, JSON only:
@@ -2813,37 +2759,6 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
   "complexity": "Quiet" | "Complex" | "Critical",
   "feedback": "<80 to 160 words. Wrap chess terms and square names in [[double brackets]] like [[Ruy Lopez]], [[bishop on b5]], [[d5 pawn]], [[kingside]]. Neutral perspective. Do not address the user as 'you'. Describe the position, key imbalances, and the main strategic themes.>"
 }`;
-
-  async function verifyPosition(firstPassPlacement, inlineDataParts, inputType) {
-    const verifyParts = [
-      { text: `input_type: ${inputType}\ncandidate_piece_placement: ${firstPassPlacement}` },
-      ...inlineDataParts
-    ];
-    const verifyBody = {
-      systemInstruction: { parts: [{ text: VERIFY_INSTRUCTION }] },
-      contents: [{ role: 'user', parts: verifyParts }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-        maxOutputTokens: 1024,
-        thinkingConfig: { thinkingBudget: 20000, includeThoughts: false }
-      }
-    };
-
-    const res = await fetchWithRetry(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(verifyBody)
-    });
-    if (!res.ok) throw new Error('verifier http ' + res.status);
-
-    const data = await res.json();
-    const txt  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!txt) throw new Error('verifier empty response');
-
-    const cleaned = txt.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-    return JSON.parse(cleaned);
-  }
 
   /* ── Download helper ─────────────────────────────────── */
   function triggerDownload(content, filename, mimeType) {
@@ -4075,30 +3990,6 @@ Return exactly this shape — no prose, no markdown fences, JSON only:
       if (result.error === 'no_board_detected') {
         renderError('No board detected', result.feedback || 'No chess board could be detected in the uploaded media. Please ensure the board is well-lit, fully visible, and the camera is aimed directly at the position.');
         return;
-      }
-
-      // Two-pass verification — best-effort, silently falls back on failure.
-      // Skipped for video and for high-confidence clean scans (no uncertain squares).
-      const needsVerification = result.piece_placement &&
-        inputType !== 'video' &&
-        (result.confidence !== 'high' || (result.low_confidence_squares && result.low_confidence_squares.length > 0));
-      if (needsVerification) {
-        spinLabel.textContent = 'Verifying position…';
-        try {
-          const verified = await verifyPosition(result.piece_placement, inlineDataParts, inputType);
-          if (verified && verified.piece_placement && verified.piece_placement !== result.piece_placement) {
-            console.log('[ChessSight] verifier corrected', verified.corrections);
-            result.piece_placement = verified.piece_placement;
-            const merged = (result.low_confidence_squares || []).slice();
-            (verified.corrections || []).forEach(c => {
-              if (c && c.square && !merged.includes(c.square)) merged.push(c.square);
-            });
-            result.low_confidence_squares = merged;
-            if (verified.confidence) result.confidence = verified.confidence;
-          }
-        } catch (err) {
-          console.warn('[ChessSight] verifier failed, using first pass:', err);
-        }
       }
 
       let fen, pgn;
