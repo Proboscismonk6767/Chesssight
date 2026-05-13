@@ -1094,14 +1094,14 @@
     .auth-error.visible { display: block; }
     .auth-submit-btn {
       width: 100%; padding: 0.75rem 1rem;
-      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      background: var(--gold);
       border: none; border-radius: 10px; cursor: pointer;
       font-family: var(--font-body); font-size: 0.88rem; font-weight: 600;
       color: var(--black-near);
-      transition: opacity var(--transition), transform 0.15s;
+      transition: background var(--transition), opacity var(--transition), transform 0.15s;
       margin-top: 0.15rem;
     }
-    .auth-submit-btn:hover { opacity: 0.9; }
+    .auth-submit-btn:hover { background: var(--gold-light); }
     .auth-submit-btn:active { transform: scale(0.985); }
     .auth-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .auth-links {
